@@ -1,0 +1,6 @@
+#!/bin/sh
+for f in $1/*.pdf
+do
+	echo "$f"
+	echo -e "p 1\np 2\nq\n" | ./PDFParser "$f"
+done

@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 2.6)
+project(PDFParser)
+add_executable(PDFParser ASCII85DecodeFilter.cpp ASCIIHexDecodeFilter.cpp ByteArrayInputStream.cpp CairoRenderer.cpp CMap.cpp CMapReader.cpp CompoundFilter.cpp CompoundInputStream.cpp DataInputStream.cpp FileInputStream.cpp Filter.cpp FilterFactory.cpp FlateDecodeFilter.cpp FontEncoding.c NameToUnicode.c Object.cpp ObjReader.cpp ObjRenderer.cpp PDFParser.cpp PDF.cpp PredictorFilter.cpp RawRenderer.cpp Renderer.cpp RendererFactory.cpp TextRenderer.cpp Xref.cpp)
+target_link_libraries(PDFParser z cairo)
+set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR}/../bin CACHE PATH "" FORCE)
+install(TARGETS PDFParser DESTINATION ../bin)

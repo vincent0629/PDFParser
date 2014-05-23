@@ -1,0 +1,562 @@
+#include "CairoRenderer.h"
+#include "InputStream.h"
+#include "Object.h"
+#include "PDF.h"
+#include <stdio.h>
+#include <string.h>
+#include <cairo/cairo.h>
+#include <assert.h>
+
+static void PrintObj(CObject *pObj)
+{
+	double d;
+	int i, n;
+	const char *pName;
+
+	switch (pObj->GetType())
+	{
+		case CObject::OBJ_NULL:
+			printf("null");
+			break;
+		case CObject::OBJ_BOOLEAN:
+			printf("%s", ((CBoolean *)pObj)->GetValue()? "true" : "false");
+			break;
+		case CObject::OBJ_NUMERIC:
+			d = ((CNumeric *)pObj)->GetValue();
+			if (d == (int)d)
+				printf("%d", (int)d);
+			else
+				printf("%lf", d);
+			break;
+		case CObject::OBJ_STRING:
+			printf("\"%s\"", ((CString *)pObj)->GetValue());
+			break;
+		case CObject::OBJ_NAME:
+			printf("/%s", ((CName *)pObj)->GetValue());
+			break;
+		case CObject::OBJ_ARRAY:
+			printf("[");
+			n = ((CArray *)pObj)->GetSize();
+			for (i = 0; i < n; i++)
+			{
+				if (i > 0)
+					printf(" ");
+				PrintObj(((CArray *)pObj)->GetValue(i));
+			}
+			printf("]");
+			break;
+		case CObject::OBJ_DICTIONARY:
+			printf("<\n");
+			n = ((CDictionary *)pObj)->GetSize();
+			for (i = 0; i < n; i++)
+			{
+				pName = ((CDictionary *)pObj)->GetName(i);
+				printf(" %s: ", pName);
+				PrintObj(((CDictionary *)pObj)->GetValue(pName));
+				printf("\n");
+			}
+			printf(">");
+			break;
+		case CObject::OBJ_STREAM:
+			PrintObj(((CStream *)pObj)->GetDictionary());
+			printf("\nstream %d", ((CStream *)pObj)->GetSize());
+			break;
+		case CObject::OBJ_REFERENCE:
+			printf("%d %d R", ((CReference *)pObj)->GetObjNum(), ((CReference *)pObj)->GetGeneration());
+			break;
+		case CObject::OBJ_OPERATOR:
+			printf("%s", ((COperator *)pObj)->GetValue());
+			break;
+	}
+}
+
+CCairoRenderer::CCairoRenderer(CPDF *pPDF) : CRenderer(pPDF)
+{
+}
+
+void CCairoRenderer::RenderPage(CDictionary *pPage, double dWidth, double dHeight)
+{
+	CArray *pMediaBox;
+	cairo_surface_t *pSurface;
+	char str[32];
+
+	m_dHeight = dHeight;
+	pSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, dWidth, dHeight);
+	m_pCairo = cairo_create(pSurface);
+	cairo_set_source_rgba(m_pCairo, 1.0, 1.0, 1.0, 1.0);
+	cairo_paint(m_pCairo);
+	m_pStrokeColor[0] = 0.0;
+	m_pStrokeColor[1] = 0.0;
+	m_pStrokeColor[2] = 0.0;
+	cairo_set_source_rgba(m_pCairo, 0.0, 0.0, 0.0, 1.0);
+	cairo_set_line_width(m_pCairo, 0.5);
+	cairo_set_miter_limit(m_pCairo, 10.0);
+	m_nTextMode = 0;
+	m_dTextLead = 0.0;
+	m_pFontMatrix = new cairo_matrix_t;
+
+	cairo_translate(m_pCairo, 0, dHeight);
+	cairo_scale(m_pCairo, 1.0, -1.0);
+
+	CRenderer::RenderPage(pPage, dWidth, dHeight);
+	sprintf(str, "%d.png", m_nPage);
+	cairo_surface_write_to_png(pSurface, str);
+
+	delete m_pFontMatrix;
+	cairo_destroy(m_pCairo);
+	cairo_surface_destroy(pSurface);
+}
+
+void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nParams)
+{
+	const char *cstr;
+	double x, y;
+	double v[6];
+	int i, n;
+	CObject *pObj;
+	CStream *pXObj;
+	CDictionary *pDict;
+	IInputStream *pSource;
+	cairo_matrix_t matrix;
+	int nWidth, nHeight, nStride;
+	cairo_surface_t *pSurface;
+	unsigned char *buffer, *ptr, pixel[3];
+
+	cstr = pOp->GetValue();
+
+	if (strchr("fFbBW", *cstr) != NULL)
+		if (cstr[1] == '\0')
+			cairo_set_fill_rule(m_pCairo, CAIRO_FILL_RULE_WINDING);
+		else if (cstr[1] == '*')
+			cairo_set_fill_rule(m_pCairo, CAIRO_FILL_RULE_EVEN_ODD);
+
+	if (*cstr == 'b')  //close, fill, and stroke
+	{
+		cairo_close_path(m_pCairo);
+		cairo_fill(m_pCairo);
+		Stroke();
+	}
+	else if (strcmp(cstr, "B") == 0 || strcmp(cstr, "B*") == 0)  //fill and stroke
+	{
+		cairo_fill(m_pCairo);
+		Stroke();
+	}
+	else if (strcmp(cstr, "BDC") == 0)
+	{
+	}
+	else if (strcmp(cstr, "BI") == 0)
+	{
+	}
+	else if (strcmp(cstr, "BMC") == 0)
+	{
+	}
+	else if (strcmp(cstr, "BT") == 0)
+	{
+		cairo_save(m_pCairo);
+		cairo_move_to(m_pCairo, 0.0, 0.0);
+	}
+	else if (strcmp(cstr, "BX") == 0)
+	{
+	}
+	else if (strcmp(cstr, "c") == 0)  //curve to
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_curve_to(m_pCairo, v[0], v[1], v[2], v[3], v[4], v[5]);
+	}
+	else if (strcmp(cstr, "cm") == 0)  //concat
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_matrix_init(&matrix, v[0], v[1], v[2], v[3], v[4], v[5]);
+		cairo_transform(m_pCairo, &matrix);
+	}
+	else if (strcmp(cstr, "CS") == 0)  //color space
+	{
+	}
+	else if (strcmp(cstr, "cs") == 0)  //color space
+	{
+	}
+	else if (strcmp(cstr, "d") == 0)  //line dash
+		SetDash(pParams[0], pParams[1]);
+	else if (strcmp(cstr, "d0") == 0)
+	{
+	}
+	else if (strcmp(cstr, "d1") == 0)
+	{
+	}
+	else if (strcmp(cstr, "Do") == 0)
+	{
+		pXObj = (CStream *)GetResource(XOBJECT, ((CName *)pParams[0])->GetValue());
+		pDict = pXObj->GetDictionary();
+		//PrintObj(pDict);
+		pObj = pDict->GetValue("Subtype");
+		if (strcmp(((CName *)pObj)->GetValue(), "Image") == 0)
+		{
+			pSource = m_pPDF->GetInputStream(pXObj);
+			nWidth = ((CNumeric *)pDict->GetValue("Width"))->GetValue();
+			nHeight = ((CNumeric *)pDict->GetValue("Height"))->GetValue();
+			nStride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, nWidth);
+			//printf("%s %d %d %d %d\n", cstr, pSource->Available(), nWidth, nHeight, nStride);
+#if 0
+			buffer = new unsigned char[nStride * nHeight];
+			ptr = buffer;
+			for (i = 0; i < nHeight; ++i)
+				for (n = 0; n < nWidth; ++n)
+				{
+					pSource->Read(pixel, 3);
+					ptr[0] = pixel[2];
+					ptr[1] = pixel[1];
+					ptr[2] = pixel[0];
+					ptr += 4;
+				}
+			pSurface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_RGB24, nWidth, nHeight, nStride);
+			cairo_set_source_surface(m_pCairo, pSurface, 0.0, 0.0);
+			cairo_save(m_pCairo);
+			cairo_matrix_init(&matrix, 1.0 / nWidth, 0.0, 0.0, -1.0 / nHeight, 0.0, 1.0);
+			cairo_transform(m_pCairo, &matrix);
+			cairo_paint(m_pCairo);
+			cairo_restore(m_pCairo);
+			cairo_surface_destroy(pSurface);
+			delete[] buffer;
+#else
+			cairo_save(m_pCairo);
+			cairo_set_source_rgba(m_pCairo, 0.0, 1.0, 0.0, 0.5);
+			cairo_matrix_init(&matrix, 1.0 / nWidth, 0.0, 0.0, -1.0 / nHeight, 0.0, 1.0);
+			cairo_transform(m_pCairo, &matrix);
+			//cairo_new_path(m_pCairo);
+			cairo_new_path(m_pCairo);
+			cairo_rectangle(m_pCairo, 0.0, 0.0, nWidth, nHeight);
+			cairo_fill(m_pCairo);
+			cairo_restore(m_pCairo);
+#endif
+		}
+	}
+	else if (strcmp(cstr, "DP") == 0)
+	{
+	}
+	else if (strcmp(cstr, "EI") == 0)
+	{
+	}
+	else if (strcmp(cstr, "EMC") == 0)
+	{
+	}
+	else if (strcmp(cstr, "ET") == 0)
+	{
+		cairo_restore(m_pCairo);
+	}
+	else if (strcmp(cstr, "EX") == 0)
+	{
+	}
+	else if (*cstr == 'f' || *cstr == 'F')  //fill
+		cairo_fill(m_pCairo);
+	else if (strcmp(cstr, "G") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		m_pStrokeColor[0] = v[0];
+		m_pStrokeColor[1] = v[0];
+		m_pStrokeColor[2] = v[0];
+	}
+	else if (strcmp(cstr, "g") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_set_source_rgba(m_pCairo, v[0], v[0], v[0], 1.0);
+	}
+	else if (strcmp(cstr, "gs") == 0)  //set graphics state
+		SetGraphicsState(((CName *)pParams[0])->GetValue());
+	else if (strcmp(cstr, "h") == 0)  //close subpath
+		cairo_close_path(m_pCairo);
+	else if (strcmp(cstr, "i") == 0)  //flatness tolerance
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_set_tolerance(m_pCairo, v[0]);
+	}
+	else if (strcmp(cstr, "ID") == 0)
+	{
+	}
+	else if (strcmp(cstr, "j") == 0)  //line join
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_set_line_join(m_pCairo, (cairo_line_join_t)v[0]);
+	}
+	else if (strcmp(cstr, "J") == 0)  //line cap
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_set_line_cap(m_pCairo, (cairo_line_cap_t)v[0]);
+	}
+	else if (strcmp(cstr, "K") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		m_pStrokeColor[0] = (1.0 - v[0]) * (1.0 - v[3]);
+		m_pStrokeColor[1] = (1.0 - v[1]) * (1.0 - v[3]);
+		m_pStrokeColor[2] = (1.0 - v[2]) * (1.0 - v[3]);
+	}
+	else if (strcmp(cstr, "k") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_set_source_rgba(m_pCairo, (1.0 - v[0]) * (1.0 - v[3]), (1.0 - v[1]) * (1.0 - v[3]), (1.0 - v[2]) * (1.0 - v[3]), 1.0);
+	}
+	else if (strcmp(cstr, "l") == 0)  //line to
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_line_to(m_pCairo, v[0], v[1]);
+	}
+	else if (strcmp(cstr, "m") == 0)  //new sub path
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_move_to(m_pCairo, v[0], v[1]);
+	}
+	else if (strcmp(cstr, "M") == 0)  //miter limit
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_set_miter_limit(m_pCairo, v[0]);
+	}
+	else if (strcmp(cstr, "MP") == 0)
+	{
+	}
+	else if (strcmp(cstr, "n") == 0)  //end path
+		cairo_new_path(m_pCairo);
+	else if (strcmp(cstr, "q") == 0)  //save graphics state
+		cairo_save(m_pCairo);
+	else if (strcmp(cstr, "Q") == 0)  //restore graphics state
+		cairo_restore(m_pCairo);
+	else if (strcmp(cstr, "re") == 0)  //rectangle
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_rectangle(m_pCairo, v[0], v[1] - v[3], v[2], v[3]);
+	}
+	else if (strcmp(cstr, "RG") == 0)
+	{
+		ConvertNumeric(pParams, nParams, m_pStrokeColor);
+	}
+	else if (strcmp(cstr, "rg") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_set_source_rgba(m_pCairo, v[0], v[1], v[2], 1.0);
+	}
+	else if (strcmp(cstr, "ri") == 0)  //color rendering intent
+		SetIntent(((CName *)pParams[0])->GetValue());
+	else if (strcmp(cstr, "s") == 0)  //close and stroke
+	{
+		cairo_close_path(m_pCairo);
+		Stroke();
+	}
+	else if (strcmp(cstr, "S") == 0)  //stroke
+		Stroke();
+	else if (strcmp(cstr, "SC") == 0)
+	{
+	}
+	else if (strcmp(cstr, "sc") == 0)
+	{
+	}
+	else if (strcmp(cstr, "SCN") == 0)
+	{
+	}
+	else if (strcmp(cstr, "scn") == 0)
+	{
+	}
+	else if (strcmp(cstr, "sh") == 0)
+	{
+	}
+	else if (strcmp(cstr, "T*") == 0)
+	{
+		cairo_translate(m_pCairo, 0.0, -m_dTextLead);
+		cairo_move_to(m_pCairo, 0.0, 0.0);
+	}
+	else if (strcmp(cstr, "Tc") == 0)
+	{
+		//not implemented
+		fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, cstr);
+	}
+	else if (strcmp(cstr, "Td") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_translate(m_pCairo, v[0], v[1]);
+		cairo_move_to(m_pCairo, 0.0, 0.0);
+	}
+	else if (strcmp(cstr, "TD") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_translate(m_pCairo, v[0], v[1]);
+		cairo_move_to(m_pCairo, 0.0, 0.0);
+		m_dTextLead = -v[1];
+	}
+	else if (strcmp(cstr, "Tf") == 0)
+	{
+		ConvertNumeric(pParams + 1, nParams - 1, v);
+		ChangeFont(((CName *)pParams[0])->GetValue());
+		//cairo_scale(m_pCairo, v[0], v[0]);
+		cairo_set_font_size(m_pCairo, v[0]);
+	}
+	else if (strcmp(cstr, "Tj") == 0)
+		RenderText((CString *)pParams[0]);
+	else if (strcmp(cstr, "TJ") == 0)
+	{
+		n = ((CArray *)pParams[0])->GetSize();
+		for (i = 0; i < n; i++)
+		{
+			pObj = ((CArray *)pParams[0])->GetValue(i);
+			if (pObj->GetType() == CObject::OBJ_STRING)
+				RenderText((CString *)pObj);
+			else if (pObj->GetType() == CObject::OBJ_NUMERIC)
+				cairo_translate(m_pCairo, -((CNumeric *)pObj)->GetValue() / 1000.0, 0.0);
+		}
+	}
+	else if (strcmp(cstr, "TL") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		m_dTextLead = v[0];
+	}
+	else if (strcmp(cstr, "Tm") == 0)
+	{
+		cairo_restore(m_pCairo);
+		cairo_save(m_pCairo);
+		ConvertNumeric(pParams, nParams, v);
+		cairo_matrix_init(&matrix, v[0], v[1], v[2], v[3], v[4], v[5]);
+		cairo_transform(m_pCairo, &matrix);
+		cairo_move_to(m_pCairo, 0.0, 0.0);
+	}
+	else if (strcmp(cstr, "Tr") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		m_nTextMode = v[0];
+	}
+	else if (strcmp(cstr, "Ts") == 0)
+	{
+		//not implemented
+		fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, cstr);
+	}
+	else if (strcmp(cstr, "Tw") == 0)
+	{
+		//not implemented
+		fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, cstr);
+	}
+	else if (strcmp(cstr, "Tz") == 0)
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_scale(m_pCairo, v[0] / 100.0, 1.0);
+	}
+	else if (strcmp(cstr, "v") == 0)  //curve to
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_get_current_point(m_pCairo, &x, &y);
+		cairo_curve_to(m_pCairo, x, y, v[0], v[1], v[2], v[3]);
+	}
+	else if (strcmp(cstr, "w") == 0)  //line width
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_set_line_width(m_pCairo, v[0] + 0.5);
+	}
+	else if (*cstr == 'W')  //clipping path
+		;//cairo_clip(m_pCairo);
+	else if (strcmp(cstr, "y") == 0)  //curve to
+	{
+		ConvertNumeric(pParams, nParams, v);
+		cairo_curve_to(m_pCairo, v[0], v[1], v[2], v[3], v[2], v[3]);
+	}
+	else if (strcmp(cstr, "'") == 0)
+	{
+		cairo_translate(m_pCairo, 0.0, -m_dTextLead);
+		cairo_move_to(m_pCairo, 0.0, 0.0);
+		RenderText((CString *)pParams[0]);
+	}
+	else if (strcmp(cstr, "\"") == 0)
+	{
+		//not implemented
+		fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, cstr);
+		RenderText((CString *)pParams[2]);
+	}
+	else
+	{
+		assert(false);
+	}
+}
+
+void CCairoRenderer::RenderString(const char *str)
+{
+#if 0
+	double x, y;
+	cairo_matrix_t matrix;
+	cairo_get_current_point(m_pCairo, &x, &y);
+	printf("%lf %lf %s\n", x, y, str);
+	cairo_get_matrix(m_pCairo, &matrix);
+	printf("%lf %lf %lf %lf %lf %lf\n", matrix.xx, matrix.yx, matrix.xy, matrix.yy, matrix.x0, matrix.y0);
+	printf("%lf %lf %lf %lf %lf %lf\n", m_pFontMatrix->xx, m_pFontMatrix->yx, m_pFontMatrix->xy, m_pFontMatrix->yy, m_pFontMatrix->x0, m_pFontMatrix->y0);
+#endif
+	cairo_show_text(m_pCairo, str);
+}
+
+void CCairoRenderer::ConvertNumeric(CObject **pParams, int nParams, double *v)
+{
+	int i;
+
+	for (i = 0; i < nParams; i++)
+		if (pParams[i]->GetType() == CObject::OBJ_NUMERIC)
+			v[i] = ((CNumeric *)pParams[i])->GetValue();
+}
+
+void CCairoRenderer::SetGraphicsState(const char *pName)
+{
+	CDictionary *pGState;
+	int i, n;
+	CObject *pObj;
+	double v;
+
+	pGState = (CDictionary *)GetResource(EXTGSTATE, pName);
+	n = pGState->GetSize();
+	for (i = 0; i < n; i++)
+	{
+		pName = pGState->GetName(i);
+		pObj = pGState->GetValue(pName);
+		if (pObj->GetType() == CObject::OBJ_NUMERIC)
+			v = ((CNumeric *)pObj)->GetValue();
+		if (strcmp(pName, "Type") == 0)
+			assert(strcmp(((CString *)pObj)->GetValue(), "ExtGState") == 0);
+		else if (strcmp(pName, "LW") == 0)
+			cairo_set_line_width(m_pCairo, v + 0.5);
+		else if (strcmp(pName, "LC") == 0)
+			cairo_set_line_cap(m_pCairo, (cairo_line_cap_t)v);
+		else if (strcmp(pName, "LJ") == 0)
+			cairo_set_line_join(m_pCairo, (cairo_line_join_t)v);
+		else if (strcmp(pName, "ML") == 0)
+			cairo_set_miter_limit(m_pCairo, v);
+		else if (strcmp(pName, "D") == 0)
+			SetDash(((CArray *)pObj)->GetValue(0), ((CArray *)pObj)->GetValue(1));
+		else if (strcmp(pName, "RI") == 0)
+			SetIntent(((CName *)pObj)->GetValue());
+		else
+		{
+			//not implemented
+			fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, pName);
+		}
+	}
+}
+
+void CCairoRenderer::SetDash(CObject *pArray, CObject *pPhase)
+{
+	CArray *array;
+	int i, n;
+	double *dash;
+
+	array = (CArray *)pArray;
+	n = array->GetSize();
+	dash = new double[n];
+	for (i = 0; i < n; i++)
+		dash[i] = ((CNumeric *)array->GetValue(i))->GetValue();
+	cairo_set_dash(m_pCairo, dash, n, ((CNumeric *)pPhase)->GetValue());
+	delete[] dash;
+}
+
+void CCairoRenderer::SetIntent(const char *pName)
+{
+	//not implemented
+	fprintf(stderr, "Warning: %s:%d\n", __func__, __LINE__);
+}
+
+void CCairoRenderer::Stroke(void)
+{
+	double r, g, b, a;
+
+	cairo_pattern_get_rgba(cairo_get_source(m_pCairo), &r, &g, &b, &a);
+	cairo_set_source_rgba(m_pCairo, m_pStrokeColor[0], m_pStrokeColor[1], m_pStrokeColor[2], 1.0);
+	cairo_stroke(m_pCairo);
+	cairo_set_source_rgba(m_pCairo, r, g, b, 1.0);
+}
