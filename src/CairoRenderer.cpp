@@ -213,7 +213,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 		pObj = pDict->GetValue("Subtype");
 		if (strcmp(((CName *)pObj)->GetValue(), "Image") == 0)
 		{
-			pSource = m_pPDF->GetInputStream(pXObj);
+			pSource = m_pPDF->CreateInputStream(pStream);
 			nWidth = ((CNumeric *)pDict->GetValue("Width"))->GetValue();
 			nHeight = ((CNumeric *)pDict->GetValue("Height"))->GetValue();
 			nStride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, nWidth);
@@ -240,6 +240,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 			cairo_surface_destroy(pSurface);
 			delete[] buffer;
 			cairo_restore(m_pCairo);
+			delete pSource;
 		}
 	}
 	else if (strcmp(cstr, "DP") == 0)

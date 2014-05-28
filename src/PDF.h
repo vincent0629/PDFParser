@@ -27,7 +27,7 @@ public:
 	STrailer *GetTrailer(void);
 	CObject *GetObject(int nNum);
 	CObject *GetObject(CObject *pObj);
-	IInputStream *GetInputStream(CStream *pStream);
+	IInputStream *CreateInputStream(CStream *pStream);
 	int GetPageNum(void);
 	CDictionary *GetPage(int nIndex);
 

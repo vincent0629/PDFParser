@@ -133,7 +133,7 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 					if (pObj->GetType() == CObject::OBJ_STREAM && n >= 3)
 					{
 						printf("----- begin -----\n");
-						pIS = pPDF->GetInputStream((CStream *)pObj);
+						pIS = pPDF->CreateInputStream((CStream *)pObj);
 						while ((n = pIS->Read(str, sizeof(str) - 1)) > 0)
 						{
 							str[n] = '\0';

@@ -13,7 +13,7 @@ void CRawRenderer::RenderContents(CStream *pContents)
 	char str[256];
 	int n;
 
-	pSource = m_pPDF->GetInputStream(pContents);
+	pSource = m_pPDF->CreateInputStream(pContents);
 	while ((n = pSource->Read(str, sizeof(str))) > 0)
 		fwrite(str, 1, n, stdout);
 	delete pSource;

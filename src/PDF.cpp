@@ -71,7 +71,7 @@ CPDF::CPDF(IInputStream *pSource)
 			m_pSource->ReadStr(str, sizeof(str));  //obj
 			pTrailer->pStream = (CStream *)m_pReader->ReadObj();  //stream
 			pTrailer->pDict = pTrailer->pStream->GetDictionary();
-			pSource = GetInputStream(pTrailer->pStream);
+			pSource = CreateInputStream(pTrailer->pStream);
 			m_pXref->Read(pSource);
 			delete pSource;
 		}
@@ -158,7 +158,7 @@ CObject *CPDF::GetObject(CObject *pObj)
 	return pObj;
 }
 
-IInputStream *CPDF::GetInputStream(CStream *pStream)
+IInputStream *CPDF::CreateInputStream(CStream *pStream)
 {
 	IInputStream *pSource;
 	CDictionary *pDict;

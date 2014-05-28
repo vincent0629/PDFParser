@@ -102,7 +102,7 @@ void CRenderer::RenderContents(CStream *pContents)
 	CObject *pObj;
 	CObject *pParams[10];
 
-	pSource = m_pPDF->GetInputStream(pContents);
+	pSource = m_pPDF->CreateInputStream(pContents);
 	pDIS = new CDataInputStream(pSource);
 	pReader = new CObjReader(pDIS, m_pPDF->GetXref());
 	nOffset = 0;
@@ -160,7 +160,7 @@ void CRenderer::ChangeFont(const char *pName)
 		pObj = m_pPDF->GetObject(pFont->GetValue("ToUnicode"));
 		if (pObj != NULL)
 		{
-			pSource = m_pPDF->GetInputStream((CStream *)pObj);
+			pSource = m_pPDF->CreateInputStream((CStream *)pObj);
 			m_pCMap = ReadCMap(pSource);
 			delete pSource;
 		}
