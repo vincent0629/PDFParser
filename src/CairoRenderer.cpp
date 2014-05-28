@@ -406,6 +406,8 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 		ConvertNumeric(pParams + 1, nParams - 1, v);
 		ChangeFont(((CName *)pParams[0])->GetValue());
 		cairo_matrix_init_scale(m_pFontMatrix, v[0], -v[0]);
+		cairo_set_font_matrix(m_pCairo, m_pFontMatrix);
+		cairo_select_font_face(m_pCairo, "Droid Sans Fallback", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 	}
 	else if (strcmp(cstr, "Tj") == 0)
 		RenderText((CString *)pParams[0]);
@@ -428,11 +430,10 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Tm") == 0)
 	{
-		cairo_restore(m_pCairo);
-		cairo_save(m_pCairo);
 		ConvertNumeric(pParams, nParams, v);
 		cairo_matrix_init(&matrix, v[0], v[1], v[2], v[3], v[4], v[5]);
-		cairo_transform(m_pCairo, &matrix);
+		cairo_matrix_multiply(&matrix, m_pFontMatrix, &matrix);
+		cairo_set_font_matrix(m_pCairo, &matrix);
 		cairo_move_to(m_pCairo, 0.0, 0.0);
 	}
 	else if (strcmp(cstr, "Tr") == 0)
@@ -491,7 +492,6 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 
 void CCairoRenderer::RenderString(const char *str)
 {
-	cairo_set_font_matrix(m_pCairo, m_pFontMatrix);
 	cairo_show_text(m_pCairo, str);
 }
 
