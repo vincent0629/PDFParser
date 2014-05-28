@@ -275,9 +275,9 @@ void CRenderer::RenderText(CString *pString)
 	if (i > 0)
 	{
 		wstr[i] = L'\0';
-		str = new char[i * 3 + 1];
+		str = new char[i * 6 + 1];
 		str[0] = '\0';
-		wcstombs(str, wstr, i * 3 + 1);
+		wcstombs(str, wstr, i * 6 + 1);
 		RenderString(str);
 		delete[] str;
 	}
