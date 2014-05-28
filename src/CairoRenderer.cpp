@@ -7,6 +7,8 @@
 #include <cairo/cairo.h>
 #include <assert.h>
 
+#define NOT_IMPLEMENTED PrintNotImplementedOperator(pOp, pParams, nParams)
+
 static void PrintObj(CObject *pObj)
 {
 	double d;
@@ -68,6 +70,18 @@ static void PrintObj(CObject *pObj)
 			printf("%s", ((COperator *)pObj)->GetValue());
 			break;
 	}
+}
+
+static void PrintNotImplementedOperator(COperator *pOp, CObject **pParams, int nParams)
+{
+	printf("Not implemented: ");
+	for (int i = 0; i < nParams; ++i)
+	{
+		PrintObj(pParams[i]);
+		printf(" ");
+	}
+	PrintObj(pOp);
+	printf("\n");
 }
 
 CCairoRenderer::CCairoRenderer(CPDF *pPDF) : CRenderer(pPDF)
@@ -143,12 +157,15 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "BDC") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "BI") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "BMC") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "BT") == 0)
 	{
@@ -157,6 +174,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "BX") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "c") == 0)  //curve to
 	{
@@ -171,32 +189,34 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "CS") == 0)  //color space
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "cs") == 0)  //color space
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "d") == 0)  //line dash
 		SetDash(pParams[0], pParams[1]);
 	else if (strcmp(cstr, "d0") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "d1") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "Do") == 0)
 	{
 		pXObj = (CStream *)GetResource(XOBJECT, ((CName *)pParams[0])->GetValue());
 		pDict = pXObj->GetDictionary();
-		//PrintObj(pDict);
+		PrintObj(pDict);
 		pObj = pDict->GetValue("Subtype");
 		if (strcmp(((CName *)pObj)->GetValue(), "Image") == 0)
 		{
 			pSource = m_pPDF->GetInputStream(pXObj);
 			nWidth = ((CNumeric *)pDict->GetValue("Width"))->GetValue();
 			nHeight = ((CNumeric *)pDict->GetValue("Height"))->GetValue();
-			nStride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, nWidth);
-			//printf("%s %d %d %d %d\n", cstr, pSource->Available(), nWidth, nHeight, nStride);
-#if 0
+			nStride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, nWidth);
 			buffer = new unsigned char[nStride * nHeight];
 			ptr = buffer;
 			for (i = 0; i < nHeight; ++i)
@@ -206,38 +226,33 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 					ptr[0] = pixel[2];
 					ptr[1] = pixel[1];
 					ptr[2] = pixel[0];
+					ptr[3] = 0xFF;
 					ptr += 4;
 				}
-			pSurface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_RGB24, nWidth, nHeight, nStride);
-			cairo_set_source_surface(m_pCairo, pSurface, 0.0, 0.0);
-			cairo_save(m_pCairo);
 			cairo_matrix_init(&matrix, 1.0 / nWidth, 0.0, 0.0, -1.0 / nHeight, 0.0, 1.0);
+			cairo_save(m_pCairo);
 			cairo_transform(m_pCairo, &matrix);
+			cairo_rectangle(m_pCairo, 0.0, 0.0, nWidth, nHeight);
+			cairo_clip(m_pCairo);
+			pSurface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_ARGB32, nWidth, nHeight, nStride);
+			cairo_set_source_surface(m_pCairo, pSurface, 0.0, 0.0);
 			cairo_paint(m_pCairo);
-			cairo_restore(m_pCairo);
 			cairo_surface_destroy(pSurface);
 			delete[] buffer;
-#else
-			cairo_save(m_pCairo);
-			cairo_set_source_rgba(m_pCairo, 0.0, 1.0, 0.0, 0.5);
-			cairo_matrix_init(&matrix, 1.0 / nWidth, 0.0, 0.0, -1.0 / nHeight, 0.0, 1.0);
-			cairo_transform(m_pCairo, &matrix);
-			//cairo_new_path(m_pCairo);
-			cairo_new_path(m_pCairo);
-			cairo_rectangle(m_pCairo, 0.0, 0.0, nWidth, nHeight);
-			cairo_fill(m_pCairo);
 			cairo_restore(m_pCairo);
-#endif
 		}
 	}
 	else if (strcmp(cstr, "DP") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "EI") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "EMC") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "ET") == 0)
 	{
@@ -245,6 +260,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "EX") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (*cstr == 'f' || *cstr == 'F')  //fill
 		cairo_fill(m_pCairo);
@@ -271,6 +287,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "ID") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "j") == 0)  //line join
 	{
@@ -311,6 +328,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "MP") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "n") == 0)  //end path
 		cairo_new_path(m_pCairo);
@@ -321,7 +339,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	else if (strcmp(cstr, "re") == 0)  //rectangle
 	{
 		ConvertNumeric(pParams, nParams, v);
-		cairo_rectangle(m_pCairo, v[0], v[1] - v[3], v[2], v[3]);
+		cairo_rectangle(m_pCairo, v[0], v[1], v[2], v[3]);
 	}
 	else if (strcmp(cstr, "RG") == 0)
 	{
@@ -343,18 +361,23 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 		Stroke();
 	else if (strcmp(cstr, "SC") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "sc") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "SCN") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "scn") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "sh") == 0)
 	{
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "T*") == 0)
 	{
@@ -363,8 +386,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Tc") == 0)
 	{
-		//not implemented
-		fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, cstr);
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "Td") == 0)
 	{
@@ -383,8 +405,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	{
 		ConvertNumeric(pParams + 1, nParams - 1, v);
 		ChangeFont(((CName *)pParams[0])->GetValue());
-		//cairo_scale(m_pCairo, v[0], v[0]);
-		cairo_set_font_size(m_pCairo, v[0]);
+		cairo_matrix_init_scale(m_pFontMatrix, v[0], -v[0]);
 	}
 	else if (strcmp(cstr, "Tj") == 0)
 		RenderText((CString *)pParams[0]);
@@ -421,13 +442,11 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Ts") == 0)
 	{
-		//not implemented
-		fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, cstr);
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "Tw") == 0)
 	{
-		//not implemented
-		fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, cstr);
+		NOT_IMPLEMENTED;
 	}
 	else if (strcmp(cstr, "Tz") == 0)
 	{
@@ -446,7 +465,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 		cairo_set_line_width(m_pCairo, v[0] + 0.5);
 	}
 	else if (*cstr == 'W')  //clipping path
-		;//cairo_clip(m_pCairo);
+		cairo_clip(m_pCairo);
 	else if (strcmp(cstr, "y") == 0)  //curve to
 	{
 		ConvertNumeric(pParams, nParams, v);
@@ -460,8 +479,8 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "\"") == 0)
 	{
-		//not implemented
-		fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, cstr);
+		cairo_translate(m_pCairo, 0.0, -m_dTextLead);
+		cairo_move_to(m_pCairo, 0.0, 0.0);
 		RenderText((CString *)pParams[2]);
 	}
 	else
@@ -472,15 +491,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 
 void CCairoRenderer::RenderString(const char *str)
 {
-#if 0
-	double x, y;
-	cairo_matrix_t matrix;
-	cairo_get_current_point(m_pCairo, &x, &y);
-	printf("%lf %lf %s\n", x, y, str);
-	cairo_get_matrix(m_pCairo, &matrix);
-	printf("%lf %lf %lf %lf %lf %lf\n", matrix.xx, matrix.yx, matrix.xy, matrix.yy, matrix.x0, matrix.y0);
-	printf("%lf %lf %lf %lf %lf %lf\n", m_pFontMatrix->xx, m_pFontMatrix->yx, m_pFontMatrix->xy, m_pFontMatrix->yy, m_pFontMatrix->x0, m_pFontMatrix->y0);
-#endif
+	cairo_set_font_matrix(m_pCairo, m_pFontMatrix);
 	cairo_show_text(m_pCairo, str);
 }
 
@@ -525,7 +536,7 @@ void CCairoRenderer::SetGraphicsState(const char *pName)
 		else
 		{
 			//not implemented
-			fprintf(stderr, "Warning: %s:%d %s\n", __func__, __LINE__, pName);
+			fprintf(stderr, "Not implemented: %s:%d %s\n", __func__, __LINE__, pName);
 		}
 	}
 }
@@ -548,7 +559,7 @@ void CCairoRenderer::SetDash(CObject *pArray, CObject *pPhase)
 void CCairoRenderer::SetIntent(const char *pName)
 {
 	//not implemented
-	fprintf(stderr, "Warning: %s:%d\n", __func__, __LINE__);
+	fprintf(stderr, "Not Implemented: %s:%d\n", __func__, __LINE__);
 }
 
 void CCairoRenderer::Stroke(void)
