@@ -8,69 +8,6 @@
 #include <stdlib.h>
 #include <locale.h>
 
-static void PrintObj(CObject *pObj)
-{
-	double d;
-	int i, n;
-	const char *pName;
-
-	switch (pObj->GetType())
-	{
-		case CObject::OBJ_NULL:
-			printf("null");
-			break;
-		case CObject::OBJ_BOOLEAN:
-			printf("%s", ((CBoolean *)pObj)->GetValue()? "true" : "false");
-			break;
-		case CObject::OBJ_NUMERIC:
-			d = ((CNumeric *)pObj)->GetValue();
-			if (d == (int)d)
-				printf("%d", (int)d);
-			else
-				printf("%lf", d);
-			break;
-		case CObject::OBJ_STRING:
-			printf("\"%s\"", ((CString *)pObj)->GetValue());
-			break;
-		case CObject::OBJ_NAME:
-			printf("/%s", ((CName *)pObj)->GetValue());
-			break;
-		case CObject::OBJ_ARRAY:
-			printf("[");
-			n = ((CArray *)pObj)->GetSize();
-			for (i = 0; i < n; i++)
-			{
-				if (i > 0)
-					printf(" ");
-				PrintObj(((CArray *)pObj)->GetValue(i));
-			}
-			printf("]");
-			break;
-		case CObject::OBJ_DICTIONARY:
-			printf("<\n");
-			n = ((CDictionary *)pObj)->GetSize();
-			for (i = 0; i < n; i++)
-			{
-				pName = ((CDictionary *)pObj)->GetName(i);
-				printf(" %s: ", pName);
-				PrintObj(((CDictionary *)pObj)->GetValue(pName));
-				printf("\n");
-			}
-			printf(">");
-			break;
-		case CObject::OBJ_STREAM:
-			PrintObj(((CStream *)pObj)->GetDictionary());
-			printf("\nstream %d", ((CStream *)pObj)->GetSize());
-			break;
-		case CObject::OBJ_REFERENCE:
-			printf("%d %d R", ((CReference *)pObj)->GetObjNum(), ((CReference *)pObj)->GetGeneration());
-			break;
-		case CObject::OBJ_OPERATOR:
-			printf("%s", ((COperator *)pObj)->GetValue());
-			break;
-	}
-}
-
 static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 {
 	CFileInputStream *pSource;
@@ -115,7 +52,7 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 				pTrailer = pPDF->GetTrailer();
 				while (pTrailer != NULL)
 				{
-					PrintObj(pTrailer->pDict);
+					CObject::Print(pTrailer->pDict);
 					printf("\n");
 					pTrailer = pTrailer->pPrev;
 				}
@@ -128,7 +65,7 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 				else
 				{
 					printf("offset = %u\n", pObj->GetOffset());
-					PrintObj(pObj);
+					CObject::Print(pObj);
 					printf("\n");
 					if (pObj->GetType() == CObject::OBJ_STREAM && n >= 3)
 					{
@@ -152,7 +89,7 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 					printf("Page doesn't exist.\n");
 				else
 				{
-					PrintObj(pObj);
+					CObject::Print(pObj);
 					delete pObj;
 
 					printf("\n");

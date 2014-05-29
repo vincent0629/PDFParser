@@ -9,78 +9,15 @@
 
 #define NOT_IMPLEMENTED PrintNotImplementedOperator(pOp, pParams, nParams)
 
-static void PrintObj(CObject *pObj)
-{
-	double d;
-	int i, n;
-	const char *pName;
-
-	switch (pObj->GetType())
-	{
-		case CObject::OBJ_NULL:
-			printf("null");
-			break;
-		case CObject::OBJ_BOOLEAN:
-			printf("%s", ((CBoolean *)pObj)->GetValue()? "true" : "false");
-			break;
-		case CObject::OBJ_NUMERIC:
-			d = ((CNumeric *)pObj)->GetValue();
-			if (d == (int)d)
-				printf("%d", (int)d);
-			else
-				printf("%lf", d);
-			break;
-		case CObject::OBJ_STRING:
-			printf("\"%s\"", ((CString *)pObj)->GetValue());
-			break;
-		case CObject::OBJ_NAME:
-			printf("/%s", ((CName *)pObj)->GetValue());
-			break;
-		case CObject::OBJ_ARRAY:
-			printf("[");
-			n = ((CArray *)pObj)->GetSize();
-			for (i = 0; i < n; i++)
-			{
-				if (i > 0)
-					printf(" ");
-				PrintObj(((CArray *)pObj)->GetValue(i));
-			}
-			printf("]");
-			break;
-		case CObject::OBJ_DICTIONARY:
-			printf("<\n");
-			n = ((CDictionary *)pObj)->GetSize();
-			for (i = 0; i < n; i++)
-			{
-				pName = ((CDictionary *)pObj)->GetName(i);
-				printf(" %s: ", pName);
-				PrintObj(((CDictionary *)pObj)->GetValue(pName));
-				printf("\n");
-			}
-			printf(">");
-			break;
-		case CObject::OBJ_STREAM:
-			PrintObj(((CStream *)pObj)->GetDictionary());
-			printf("\nstream %d", ((CStream *)pObj)->GetSize());
-			break;
-		case CObject::OBJ_REFERENCE:
-			printf("%d %d R", ((CReference *)pObj)->GetObjNum(), ((CReference *)pObj)->GetGeneration());
-			break;
-		case CObject::OBJ_OPERATOR:
-			printf("%s", ((COperator *)pObj)->GetValue());
-			break;
-	}
-}
-
 static void PrintNotImplementedOperator(COperator *pOp, CObject **pParams, int nParams)
 {
 	printf("Not implemented: ");
 	for (int i = 0; i < nParams; ++i)
 	{
-		PrintObj(pParams[i]);
+		CObject::Print(pParams[i]);
 		printf(" ");
 	}
-	PrintObj(pOp);
+	CObject::Print(pOp);
 	printf("\n");
 }
 
@@ -209,7 +146,6 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	{
 		pXObj = (CStream *)GetResource(XOBJECT, ((CName *)pParams[0])->GetValue());
 		pDict = pXObj->GetDictionary();
-		PrintObj(pDict);
 		pObj = pDict->GetValue("Subtype");
 		if (strcmp(((CName *)pObj)->GetValue(), "Image") == 0)
 		{

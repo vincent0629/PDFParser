@@ -29,6 +29,9 @@ public:
 	void SetOffset(unsigned int nOffset);
 	unsigned int GetOffset(void);
 
+public:
+	static void Print(CObject *pObj);
+
 private:
 	ObjType_t m_nType;
 	unsigned int m_nOffset;

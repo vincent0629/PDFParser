@@ -14,8 +14,6 @@ protected:
 
 private:
 	bool m_beginText;
-
-	void PrintObj(CObject *pObj);
 };
 
 #endif
