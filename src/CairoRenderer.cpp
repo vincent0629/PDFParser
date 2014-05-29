@@ -34,12 +34,13 @@ static void PrintNotImplementedOperator(COperator *pOp, CObject **pParams, int n
 
 static unsigned long Stream_ReadFunc(FT_Stream stream, unsigned long offset, unsigned char*  buffer, unsigned long count)
 {
-	IInputStream *pStream;
+	IInputStream *pSource;
 
-	pStream = (IInputStream *)stream->descriptor.pointer;
-	pStream->Seek(offset, SEEK_SET);
-	return pStream->Read(buffer, count);
+	pSource = (IInputStream *)stream->descriptor.pointer;
+	pSource->Seek(offset, SEEK_SET);
+	return pSource->Read(buffer, count);
 }
+
 static void Stream_CloseFunc(FT_Stream stream)
 {
 	delete (IInputStream *)stream->descriptor.pointer;
@@ -55,7 +56,6 @@ void CCairoRenderer::RenderPage(CDictionary *pPage, double dWidth, double dHeigh
 	cairo_surface_t *pSurface;
 	char str[32];
 
-	m_dHeight = dHeight;
 	pSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, dWidth, dHeight);
 	m_pCairo = cairo_create(pSurface);
 	cairo_set_source_rgba(m_pCairo, 1.0, 1.0, 1.0, 1.0);
@@ -96,11 +96,9 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	CObject *pObj;
 	CStream *pStream;
 	CDictionary *pDict;
-	IInputStream *pSource;
 	cairo_matrix_t matrix;
-	int nWidth, nHeight, nStride;
+	int nWidth, nHeight;
 	cairo_surface_t *pSurface;
-	unsigned char *buffer, *ptr, pixel[3];
 
 	cstr = pOp->GetValue();
 
@@ -178,34 +176,18 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 		pObj = pDict->GetValue("Subtype");
 		if (strcmp(((CName *)pObj)->GetValue(), "Image") == 0)
 		{
-			pSource = m_pPDF->CreateInputStream(pStream);
 			nWidth = ((CNumeric *)pDict->GetValue("Width"))->GetValue();
 			nHeight = ((CNumeric *)pDict->GetValue("Height"))->GetValue();
-			nStride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, nWidth);
-			buffer = new unsigned char[nStride * nHeight];
-			ptr = buffer;
-			for (i = 0; i < nHeight; ++i)
-				for (n = 0; n < nWidth; ++n)
-				{
-					pSource->Read(pixel, 3);
-					ptr[0] = pixel[2];
-					ptr[1] = pixel[1];
-					ptr[2] = pixel[0];
-					ptr[3] = 0xFF;
-					ptr += 4;
-				}
 			cairo_matrix_init(&matrix, 1.0 / nWidth, 0.0, 0.0, -1.0 / nHeight, 0.0, 1.0);
 			cairo_save(m_pCairo);
 			cairo_transform(m_pCairo, &matrix);
 			cairo_rectangle(m_pCairo, 0.0, 0.0, nWidth, nHeight);
 			cairo_clip(m_pCairo);
-			pSurface = cairo_image_surface_create_for_data(buffer, CAIRO_FORMAT_ARGB32, nWidth, nHeight, nStride);
+			pSurface = CreateImageSurface(pStream, nWidth, nHeight);
 			cairo_set_source_surface(m_pCairo, pSurface, 0.0, 0.0);
 			cairo_paint(m_pCairo);
 			cairo_surface_destroy(pSurface);
-			delete[] buffer;
 			cairo_restore(m_pCairo);
-			delete pSource;
 		}
 	}
 	else if (strcmp(cstr, "DP") == 0)
@@ -374,33 +356,9 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Tf") == 0)
 	{
-		if (m_face)
-		{
-			FT_Done_Face(m_face);
-			m_face = NULL;
-		}
-
 		pStream = ChangeFont(((CName *)pParams[0])->GetValue());
 		if (pStream != NULL)
-		{
-			pSource = m_pPDF->CreateInputStream(pStream);
-			FT_Open_Args args;
-			FT_StreamRec stream;
-			memset(&args, 0, sizeof(FT_Open_Args));
-			args.flags = FT_OPEN_STREAM;
-			args.stream = &stream;
-			memset(&stream, 0, sizeof(FT_StreamRec));
-			stream.size = pSource->Available();
-			stream.descriptor.pointer = pSource;
-			stream.read = Stream_ReadFunc;
-			stream.close = Stream_CloseFunc;
-			if (FT_Open_Face(m_ft, &args, 0, &m_face) == 0)
-			{
-				cairo_font_face_t *fc = cairo_ft_font_face_create_for_ft_face(m_face, 0);
-				cairo_set_font_face(m_pCairo, fc);
-				cairo_font_face_destroy(fc);
-			}
-		}
+			SetFontFace(pStream);
 
 		ConvertNumeric(pParams + 1, nParams - 1, v);
 		cairo_matrix_init_scale(m_pFontMatrix, v[0], -v[0]);
@@ -571,4 +529,60 @@ void CCairoRenderer::Stroke(void)
 	cairo_set_source_rgba(m_pCairo, m_pStrokeColor[0], m_pStrokeColor[1], m_pStrokeColor[2], 1.0);
 	cairo_stroke(m_pCairo);
 	cairo_set_source_rgba(m_pCairo, r, g, b, 1.0);
+}
+
+cairo_surface_t *CCairoRenderer::CreateImageSurface(CStream *pStream, int nWidth, int nHeight)
+{
+	cairo_surface_t *pSurface;
+	unsigned char *ptr, pixel[3];
+	IInputStream *pSource;
+	int i;
+
+	pSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, nWidth, nHeight);
+	ptr = cairo_image_surface_get_data(pSurface);
+	pSource = m_pPDF->CreateInputStream(pStream);
+	for (i = nWidth * nHeight; i > 0; --i)
+	{
+		pSource->Read(pixel, 3);
+		ptr[0] = pixel[2];
+		ptr[1] = pixel[1];
+		ptr[2] = pixel[0];
+		ptr[3] = 0xFF;
+		ptr += 4;
+	}
+	delete pSource;
+	cairo_surface_mark_dirty(pSurface);
+
+	return pSurface;
+}
+ 
+void CCairoRenderer::SetFontFace(CStream *pStream)
+{
+	IInputStream *pSource;
+	static FT_Open_Args args;
+	static FT_StreamRec stream;
+	cairo_font_face_t *face;
+
+	if (m_face)
+	{
+		FT_Done_Face(m_face);
+		m_face = NULL;
+	}
+
+	pSource = m_pPDF->CreateInputStream(pStream);  //pSource will be deleted in Stream_CloseFunc
+	args.flags = FT_OPEN_STREAM;
+	args.stream = &stream;
+	memset(&stream, 0, sizeof(FT_StreamRec));
+	stream.size = pSource->Available();
+	stream.descriptor.pointer = pSource;
+	stream.read = Stream_ReadFunc;
+	stream.close = Stream_CloseFunc;
+	if (FT_Open_Face(m_ft, &args, 0, &m_face) == 0)  //m_face will be destroyed by FT_Done_Face
+	{
+		face = cairo_ft_font_face_create_for_ft_face(m_face, 0);
+		cairo_set_font_face(m_pCairo, face);
+		cairo_font_face_destroy(face);
+	}
+	else
+		cairo_set_font_face(m_pCairo, NULL);
 }

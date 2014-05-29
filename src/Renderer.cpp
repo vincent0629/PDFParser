@@ -97,7 +97,6 @@ void CRenderer::RenderContents(CStream *pContents)
 	IInputStream *pSource;
 	CDataInputStream *pDIS;
 	CObjReader *pReader;
-	unsigned int nOffset;
 	int nParams;
 	CObject *pObj;
 	CObject *pParams[10];
@@ -105,18 +104,12 @@ void CRenderer::RenderContents(CStream *pContents)
 	pSource = m_pPDF->CreateInputStream(pContents);
 	pDIS = new CDataInputStream(pSource);
 	pReader = new CObjReader(pDIS, m_pPDF->GetXref());
-	nOffset = 0;
 	nParams = 0;
 	while (!m_bStop && pDIS->Available() > 0)
 	{
-		pDIS->Seek(nOffset, SEEK_SET);
 		pObj = pReader->ReadObj();
 		if (pObj == NULL)
 			break;
-		nOffset = pDIS->Position();
-		if (nOffset == 14854)
-			nOffset = 14854;
-
 		if (pObj->GetType() == CObject::OBJ_OPERATOR)
 		{
 			RenderOperator((COperator *)pObj, pParams, nParams);
@@ -167,15 +160,17 @@ CStream *CRenderer::ChangeFont(const char *pName)
 			delete pSource;
 		}
 
-		pObj = m_pPDF->GetObject(pFont->GetValue("DescendantFonts"));
-		if (pObj != NULL)
-		{
-			pObj = m_pPDF->GetObject(((CArray *)pObj)->GetValue(0));
-			if (pObj != NULL)
-				pObj = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontDescriptor"));
-		}
+		pObj = m_pPDF->GetObject(pFont->GetValue("FontDescriptor"));
 		if (pObj == NULL)
-			pObj = m_pPDF->GetObject(pFont->GetValue("FontDescriptor"));
+		{
+			pObj = m_pPDF->GetObject(pFont->GetValue("DescendantFonts"));
+			if (pObj != NULL)
+			{
+				pObj = m_pPDF->GetObject(((CArray *)pObj)->GetValue(0));
+				if (pObj != NULL)
+					pObj = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontDescriptor"));
+			}
+		}
 
 		if (pObj != NULL)
 		{

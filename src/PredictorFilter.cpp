@@ -6,27 +6,32 @@ CPredictorFilter::CPredictorFilter(IInputStream *pSource, int nColors, int nBits
 	m_nRowLength = (nColumns * nColors * nBitsPerComponent + 7) / 8 + m_nBpp;
 }
 
-CPredictorFilter::~CPredictorFilter()
-{
-	delete m_pSource;
-}
-
 unsigned int CPredictorFilter::Available(void)
 {
+	//not implemented
+	return 0;
 }
 
 unsigned int CPredictorFilter::Position(void)
 {
+	//not implemented
+	return 0;
 }
 
 int CPredictorFilter::Seek(int nOffset, int nFrom)
 {
+	//not implemented
+	return 0;
 }
 
 int CPredictorFilter::Read(void)
 {
+	//not implemented
+	return 0;
 }
 
 int CPredictorFilter::Read(void *pBuffer, int nSize)
 {
+	//not implemented
+	return 0;
 }

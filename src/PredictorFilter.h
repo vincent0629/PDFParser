@@ -7,7 +7,6 @@ class CPredictorFilter : public CFilter
 {
 public:
 	CPredictorFilter(IInputStream *pSource, int nColors, int nBitsPerComponent, int nColumns);
-	~CPredictorFilter();
 	unsigned int Available(void);
 	unsigned int Position(void);
 	int Seek(int nOffset, int nFrom);

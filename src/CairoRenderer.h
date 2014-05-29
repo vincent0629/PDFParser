@@ -5,6 +5,7 @@
 
 struct _cairo;
 struct _cairo_matrix;
+struct _cairo_surface;
 struct FT_LibraryRec_;
 struct FT_FaceRec_;
 
@@ -19,7 +20,6 @@ protected:
 	void RenderString(const char *str);
 
 private:
-	double m_dHeight;
 	_cairo *m_pCairo;
 	_cairo_matrix *m_pFontMatrix;
 	double m_pStrokeColor[3];
@@ -34,6 +34,8 @@ private:
 	void SetDash(CObject *pArray, CObject *pPhase);
 	void SetIntent(const char *pName);
 	void Stroke(void);
+	_cairo_surface *CreateImageSurface(CStream *pStream, int nWidth, int nHeight);
+	void SetFontFace(CStream *pStream);
 };
 
 #endif

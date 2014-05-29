@@ -29,6 +29,7 @@ IInputStream *CFilterFactory::Create(const char *pName, CDictionary *pParms, IIn
 			nColors = GetParm(pParms, "Colors", 1);
 			nBitsPerComponent = GetParm(pParms, "BitsPerComponent", 8);
 			nColumns = GetParm(pParms, "Columns", 1);
+			assert(false);
 			pSource = new CPredictorFilter(pSource, nColors, nBitsPerComponent, nColumns);
 		}
 	}
