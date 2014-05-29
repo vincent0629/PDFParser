@@ -5,10 +5,20 @@
 #include <stdio.h>
 #include <string.h>
 #include <cairo/cairo.h>
+#include <cairo/cairo-ft.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_MODULE_H
 #include <assert.h>
 
+//#define DEBUG_OPERATOR
+#ifdef DEBUG_OPERATOR
 #define NOT_IMPLEMENTED PrintNotImplementedOperator(pOp, pParams, nParams)
+#else
+#define NOT_IMPLEMENTED
+#endif
 
+#ifdef DEBUG_OPERATOR
 static void PrintNotImplementedOperator(COperator *pOp, CObject **pParams, int nParams)
 {
 	printf("Not implemented: ");
@@ -19,6 +29,20 @@ static void PrintNotImplementedOperator(COperator *pOp, CObject **pParams, int n
 	}
 	CObject::Print(pOp);
 	printf("\n");
+}
+#endif
+
+static unsigned long Stream_ReadFunc(FT_Stream stream, unsigned long offset, unsigned char*  buffer, unsigned long count)
+{
+	IInputStream *pStream;
+
+	pStream = (IInputStream *)stream->descriptor.pointer;
+	pStream->Seek(offset, SEEK_SET);
+	return pStream->Read(buffer, count);
+}
+static void Stream_CloseFunc(FT_Stream stream)
+{
+	delete (IInputStream *)stream->descriptor.pointer;
 }
 
 CCairoRenderer::CCairoRenderer(CPDF *pPDF) : CRenderer(pPDF)
@@ -46,12 +70,17 @@ void CCairoRenderer::RenderPage(CDictionary *pPage, double dWidth, double dHeigh
 	m_dTextLead = 0.0;
 	m_pFontMatrix = new cairo_matrix_t;
 
+	FT_Init_FreeType(&m_ft);
+	m_face = NULL;
+
 	cairo_translate(m_pCairo, 0, dHeight);
 	cairo_scale(m_pCairo, 1.0, -1.0);
 
 	CRenderer::RenderPage(pPage, dWidth, dHeight);
 	sprintf(str, "%d.png", m_nPage);
 	cairo_surface_write_to_png(pSurface, str);
+
+	FT_Done_FreeType(m_ft);
 
 	delete m_pFontMatrix;
 	cairo_destroy(m_pCairo);
@@ -65,7 +94,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	double v[6];
 	int i, n;
 	CObject *pObj;
-	CStream *pXObj;
+	CStream *pStream;
 	CDictionary *pDict;
 	IInputStream *pSource;
 	cairo_matrix_t matrix;
@@ -144,8 +173,8 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Do") == 0)
 	{
-		pXObj = (CStream *)GetResource(XOBJECT, ((CName *)pParams[0])->GetValue());
-		pDict = pXObj->GetDictionary();
+		pStream = (CStream *)GetResource(XOBJECT, ((CName *)pParams[0])->GetValue());
+		pDict = pStream->GetDictionary();
 		pObj = pDict->GetValue("Subtype");
 		if (strcmp(((CName *)pObj)->GetValue(), "Image") == 0)
 		{
@@ -194,6 +223,11 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	else if (strcmp(cstr, "ET") == 0)
 	{
 		cairo_restore(m_pCairo);
+		if (m_face)
+		{
+			FT_Done_Face(m_face);
+			m_face = NULL;
+		}
 	}
 	else if (strcmp(cstr, "EX") == 0)
 	{
@@ -340,11 +374,37 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Tf") == 0)
 	{
+		if (m_face)
+		{
+			FT_Done_Face(m_face);
+			m_face = NULL;
+		}
+
+		pStream = ChangeFont(((CName *)pParams[0])->GetValue());
+		if (pStream != NULL)
+		{
+			pSource = m_pPDF->CreateInputStream(pStream);
+			FT_Open_Args args;
+			FT_StreamRec stream;
+			memset(&args, 0, sizeof(FT_Open_Args));
+			args.flags = FT_OPEN_STREAM;
+			args.stream = &stream;
+			memset(&stream, 0, sizeof(FT_StreamRec));
+			stream.size = pSource->Available();
+			stream.descriptor.pointer = pSource;
+			stream.read = Stream_ReadFunc;
+			stream.close = Stream_CloseFunc;
+			if (FT_Open_Face(m_ft, &args, 0, &m_face) == 0)
+			{
+				cairo_font_face_t *fc = cairo_ft_font_face_create_for_ft_face(m_face, 0);
+				cairo_set_font_face(m_pCairo, fc);
+				cairo_font_face_destroy(fc);
+			}
+		}
+
 		ConvertNumeric(pParams + 1, nParams - 1, v);
-		ChangeFont(((CName *)pParams[0])->GetValue());
 		cairo_matrix_init_scale(m_pFontMatrix, v[0], -v[0]);
 		cairo_set_font_matrix(m_pCairo, m_pFontMatrix);
-		cairo_select_font_face(m_pCairo, "Droid Sans Fallback", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 	}
 	else if (strcmp(cstr, "Tj") == 0)
 		RenderText((CString *)pParams[0]);
@@ -473,7 +533,9 @@ void CCairoRenderer::SetGraphicsState(const char *pName)
 		else
 		{
 			//not implemented
-			fprintf(stderr, "Not implemented: %s:%d %s\n", __func__, __LINE__, pName);
+#ifdef DEBUG_OPERATOR
+			printf("Not implemented: %s:%d %s\n", __func__, __LINE__, pName);
+#endif
 		}
 	}
 }
@@ -496,7 +558,9 @@ void CCairoRenderer::SetDash(CObject *pArray, CObject *pPhase)
 void CCairoRenderer::SetIntent(const char *pName)
 {
 	//not implemented
-	fprintf(stderr, "Not Implemented: %s:%d\n", __func__, __LINE__);
+#ifdef DEBUG_OPERATOR
+	printf("Not Implemented: %s:%d\n", __func__, __LINE__);
+#endif
 }
 
 void CCairoRenderer::Stroke(void)

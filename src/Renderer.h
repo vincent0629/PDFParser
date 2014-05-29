@@ -34,7 +34,7 @@ protected:
 	virtual void RenderPage(CDictionary *pPage, double dWidth, double dHeight);
 	virtual void RenderContents(CStream *pContents);
 	virtual void RenderOperator(COperator *pOp, CObject **pParams, int nParams);
-	void ChangeFont(const char *pName);
+	CStream *ChangeFont(const char *pName);
 	void RenderText(CString *pString);
 	virtual void RenderString(const char *str);
 

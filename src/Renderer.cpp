@@ -136,11 +136,12 @@ void CRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nParams)
 {
 }
 
-void CRenderer::ChangeFont(const char *pName)
+CStream *CRenderer::ChangeFont(const char *pName)
 {
 	const char *cstr, *subpath;
 	CDictionary *pFont;
 	CObject *pObj, *pEncoding;
+	CStream *pFontFile;
 	CArray *pDifferences;
 	IInputStream *pSource;
 	char file[128], name[16];
@@ -150,6 +151,7 @@ void CRenderer::ChangeFont(const char *pName)
 	m_pCMap = NULL;
 
 	pFont = (CDictionary *)GetResource(FONT, pName);
+	pFontFile = NULL;
 	if (pFont == NULL)
 		m_bSimpleFont = true;
 	else
@@ -163,6 +165,25 @@ void CRenderer::ChangeFont(const char *pName)
 			pSource = m_pPDF->CreateInputStream((CStream *)pObj);
 			m_pCMap = ReadCMap(pSource);
 			delete pSource;
+		}
+
+		pObj = m_pPDF->GetObject(pFont->GetValue("DescendantFonts"));
+		if (pObj != NULL)
+		{
+			pObj = m_pPDF->GetObject(((CArray *)pObj)->GetValue(0));
+			if (pObj != NULL)
+				pObj = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontDescriptor"));
+		}
+		if (pObj == NULL)
+			pObj = m_pPDF->GetObject(pFont->GetValue("FontDescriptor"));
+
+		if (pObj != NULL)
+		{
+			pFontFile = (CStream *)m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile"));
+			if (pFontFile == NULL)
+				pFontFile = (CStream *)m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile2"));
+			if (pFontFile == NULL)
+				pFontFile = (CStream *)m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile3"));
 		}
 	}
 
@@ -221,6 +242,8 @@ void CRenderer::ChangeFont(const char *pName)
 				delete pSource;
 			}
 	}
+
+	return pFontFile;
 }
 
 void CRenderer::RenderText(CString *pString)

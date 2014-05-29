@@ -5,6 +5,8 @@
 
 struct _cairo;
 struct _cairo_matrix;
+struct FT_LibraryRec_;
+struct FT_FaceRec_;
 
 class CCairoRenderer : public CRenderer
 {
@@ -24,6 +26,8 @@ private:
 	int m_nTextMode;
 	double m_dTextLead;
 	double m_dFontSize;
+	FT_LibraryRec_ *m_ft;
+	FT_FaceRec_ *m_face;
 
 	void ConvertNumeric(CObject **pParams, int nParams, double *v);
 	void SetGraphicsState(const char *pName);
