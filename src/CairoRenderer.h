@@ -6,6 +6,7 @@
 struct _cairo;
 struct _cairo_matrix;
 struct _cairo_surface;
+struct _cairo_font_face;
 struct FT_LibraryRec_;
 struct FT_FaceRec_;
 
@@ -27,7 +28,7 @@ private:
 	double m_dTextLead;
 	double m_dFontSize;
 	FT_LibraryRec_ *m_ft;
-	FT_FaceRec_ *m_face;
+	_cairo_font_face *m_cairo_face;
 
 	void ConvertNumeric(CObject **pParams, int nParams, double *v);
 	void SetGraphicsState(const char *pName);
