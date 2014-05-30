@@ -69,15 +69,15 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 					printf("\n");
 					if (pObj->GetType() == CObject::OBJ_STREAM && n >= 3)
 					{
-						printf("----- begin -----\n");
 						pIS = pPDF->CreateInputStream((CStream *)pObj);
+						printf("----- begin %d bytes -----\n", pIS->Available());
 						while ((n = pIS->Read(str, sizeof(str) - 1)) > 0)
 						{
 							str[n] = '\0';
 							printf("%s", str);
 						}
-						delete pIS;
 						printf("----- end -----\n");
+						delete pIS;
 					}
 					delete pObj;
 				}
