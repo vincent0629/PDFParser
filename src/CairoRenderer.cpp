@@ -207,7 +207,10 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	{
 		cairo_restore(m_pCairo);
 		if (m_cairo_face)
+		{
+			cairo_set_font_face(m_pCairo, NULL);
 			cairo_font_face_destroy(m_cairo_face);
+		}
 	}
 	else if (strcmp(cstr, "EX") == 0)
 	{
@@ -354,9 +357,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Tf") == 0)
 	{
-		pStream = ChangeFont(((CName *)pParams[0])->GetValue());
-		if (pStream != NULL)
-			SetFontFace(pStream);
+		SetFontFace(ChangeFont(((CName *)pParams[0])->GetValue()));
 
 		ConvertNumeric(pParams + 1, nParams - 1, v);
 		cairo_matrix_init_scale(m_pFontMatrix, v[0], -v[0]);
@@ -569,19 +570,26 @@ void CCairoRenderer::SetFontFace(CStream *pStream)
 		m_cairo_face = NULL;
 	}
 
-	pSource = m_pPDF->CreateInputStream(pStream);  //pSource will be deleted in Stream_CloseFunc
-	stream = new FT_StreamRec;
-	memset(stream, 0, sizeof(FT_StreamRec));
-	stream->size = pSource->Available();
-	stream->descriptor.pointer = pSource;
-	stream->read = Stream_ReadFunc;
-	stream->close = Stream_CloseFunc;
-	args.flags = FT_OPEN_STREAM;
-	args.stream = stream;
-	if (FT_Open_Face(m_ft, &args, 0, &ft_face) == 0)  //m_face will be destroyed by FT_Done_Face
+	if (pStream)
 	{
-		m_cairo_face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
-		cairo_font_face_set_user_data(m_cairo_face, &key, ft_face, (cairo_destroy_func_t)FT_Done_Face);
-		cairo_set_font_face(m_pCairo, m_cairo_face);
+		pSource = m_pPDF->CreateInputStream(pStream);  //pSource will be deleted in Stream_CloseFunc
+		stream = new FT_StreamRec;
+		memset(stream, 0, sizeof(FT_StreamRec));
+		stream->size = pSource->Available();
+		stream->descriptor.pointer = pSource;
+		stream->read = Stream_ReadFunc;
+		stream->close = Stream_CloseFunc;
+		args.flags = FT_OPEN_STREAM;
+		args.stream = stream;
+		if (FT_Open_Face(m_ft, &args, 0, &ft_face) == 0)  //m_face will be destroyed by FT_Done_Face
+		{
+			m_cairo_face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
+			cairo_font_face_set_user_data(m_cairo_face, &key, ft_face, (cairo_destroy_func_t)FT_Done_Face);
+		}
 	}
+	else
+		m_cairo_face = cairo_toy_font_face_create("Droid Sans Fallback", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+
+	if (m_cairo_face)
+		cairo_set_font_face(m_pCairo, m_cairo_face);
 }
