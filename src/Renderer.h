@@ -1,7 +1,10 @@
 #ifndef _RENDERER_H_
 #define _RENDERER_H_
 
+#include <map>
+
 class CDictionary;
+class CFontData;
 class CCMap;
 class CObject;
 class COperator;
@@ -40,10 +43,8 @@ protected:
 
 private:
 	CDictionary *m_pResources[RES_NUM];
-	CCMap *m_pCMap;
-	bool m_bSimpleFont;
-	const char **m_pCodeToName;
-	const char *m_pDifferences[256];
+	std::map<CObject *, CFontData *> m_fontDataMap;
+	CFontData *m_pFontData;
 	bool m_bStop;
 };
 
