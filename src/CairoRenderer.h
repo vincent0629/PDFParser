@@ -36,7 +36,7 @@ private:
 	void SetIntent(const char *pName);
 	void Stroke(void);
 	_cairo_surface *CreateImageSurface(CStream *pStream, int nWidth, int nHeight);
-	void SetFontFace(CStream *pStream);
+	void SetFontFace(IInputStream *pStream);
 };
 
 #endif

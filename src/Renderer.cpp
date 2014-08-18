@@ -34,7 +34,7 @@ public:
 	CCMap *m_pCMap;
 	const char **m_pCodeToName;
 	const char *m_pDifferences[256];
-	CStream *m_pFontFile;
+	IInputStream *m_pFontFile;
 
 	CFontData();
 	~CFontData();
@@ -51,6 +51,7 @@ CFontData::CFontData()
 CFontData::~CFontData()
 {
 	delete m_pCMap;
+	delete m_pFontFile;
 }
 
 CRenderer::CRenderer(CPDF *pPDF)
@@ -157,7 +158,7 @@ void CRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nParams)
 {
 }
 
-CStream *CRenderer::ChangeFont(const char *pName)
+IInputStream *CRenderer::ChangeFont(const char *pName)
 {
 	CDictionary *pFont;
 	map<CObject *, CFontData *>::iterator it;
@@ -173,7 +174,11 @@ CStream *CRenderer::ChangeFont(const char *pName)
 
 	it = m_fontDataMap.find(pFont);
 	if (it != m_fontDataMap.end())
+	{
 		m_pFontData = it->second;
+		if (m_pFontData->m_pFontFile != NULL)
+			m_pFontData->m_pFontFile->Seek(0, SEEK_SET);
+	}
 	else
 	{
 		m_pFontData = new CFontData();
@@ -255,7 +260,6 @@ CStream *CRenderer::ChangeFont(const char *pName)
 			}
 		}
 
-		pFontFile = NULL;
 		if (pObj != NULL)
 		{
 			pFontFile = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile"));
@@ -263,8 +267,9 @@ CStream *CRenderer::ChangeFont(const char *pName)
 				pFontFile = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile2"));
 			if (pFontFile == NULL)
 				pFontFile = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile3"));
+			if (pFontFile != NULL)
+				m_pFontData->m_pFontFile = m_pPDF->CreateInputStream((CStream *)pFontFile);
 		}
-		m_pFontData->m_pFontFile = (CStream *)pFontFile;
 	}
 
 	return m_pFontData->m_pFontFile;

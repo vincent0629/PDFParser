@@ -43,7 +43,6 @@ static unsigned long Stream_ReadFunc(FT_Stream stream, unsigned long offset, uns
 
 static void Stream_CloseFunc(FT_Stream stream)
 {
-	delete (IInputStream *)stream->descriptor.pointer;
 	delete stream;
 }
 
@@ -555,9 +554,8 @@ cairo_surface_t *CCairoRenderer::CreateImageSurface(CStream *pStream, int nWidth
 	return pSurface;
 }
  
-void CCairoRenderer::SetFontFace(CStream *pStream)
+void CCairoRenderer::SetFontFace(IInputStream *pStream)
 {
-	IInputStream *pSource;
 	FT_Open_Args args;
 	FT_Stream stream;
 	FT_Face ft_face;
@@ -572,11 +570,10 @@ void CCairoRenderer::SetFontFace(CStream *pStream)
 
 	if (pStream)
 	{
-		pSource = m_pPDF->CreateInputStream(pStream);  //pSource will be deleted in Stream_CloseFunc
-		stream = new FT_StreamRec;
+		stream = new FT_StreamRec;  // stream will be deleted in Stream_CloseFunc
 		memset(stream, 0, sizeof(FT_StreamRec));
-		stream->size = pSource->Available();
-		stream->descriptor.pointer = pSource;
+		stream->size = pStream->Available();
+		stream->descriptor.pointer = pStream;
 		stream->read = Stream_ReadFunc;
 		stream->close = Stream_CloseFunc;
 		args.flags = FT_OPEN_STREAM;
@@ -588,7 +585,7 @@ void CCairoRenderer::SetFontFace(CStream *pStream)
 		}
 	}
 	else
-		m_cairo_face = cairo_toy_font_face_create("Droid Sans Fallback", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+		m_cairo_face = cairo_toy_font_face_create("unifont", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
 	if (m_cairo_face)
 		cairo_set_font_face(m_pCairo, m_cairo_face);

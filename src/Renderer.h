@@ -3,9 +3,10 @@
 
 #include <map>
 
+class CCMap;
 class CDictionary;
 class CFontData;
-class CCMap;
+class IInputStream;
 class CObject;
 class COperator;
 class CPDF;
@@ -37,7 +38,7 @@ protected:
 	virtual void RenderPage(CDictionary *pPage, double dWidth, double dHeight);
 	virtual void RenderContents(CStream *pContents);
 	virtual void RenderOperator(COperator *pOp, CObject **pParams, int nParams);
-	CStream *ChangeFont(const char *pName);
+	IInputStream *ChangeFont(const char *pName);
 	void RenderText(CString *pString);
 	virtual void RenderString(const char *str);
 
