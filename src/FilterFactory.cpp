@@ -20,7 +20,13 @@ IInputStream *CFilterFactory::Create(const char *pName, CDictionary *pParms, IIn
 {
 	int nPredictor, nColors, nBitsPerComponent, nColumns;
 
-	if (strcmp(pName, "FlateDecode") == 0)
+	if (strcmp(pName, "ASCIIHexDecode") == 0 || strcmp(pName, "AHx") == 0)
+		pSource = new CASCIIHexDecodeFilter(pSource);
+	else if (strcmp(pName, "ASCII85Decode") == 0 || strcmp(pName, "A85") == 0)
+		pSource = new CASCII85DecodeFilter(pSource);
+	else if (strcmp(pName, "LZWDecode") == 0 || strcmp(pName, "LZW") == 0)
+		assert(false);
+	else if (strcmp(pName, "FlateDecode") == 0 || strcmp(pName, "Fl") == 0)
 	{
 		pSource = new CFlateDecodeFilter(pSource);
 		nPredictor = GetParm(pParms, "Predictor", 1);
@@ -33,10 +39,12 @@ IInputStream *CFilterFactory::Create(const char *pName, CDictionary *pParms, IIn
 			pSource = new CPredictorFilter(pSource, nColors, nBitsPerComponent, nColumns);
 		}
 	}
-	else if (strcmp(pName, "ASCII85Decode") == 0)
-		pSource = new CASCII85DecodeFilter(pSource);
-	else if (strcmp(pName, "ASCIIHexDecode") == 0)
-		pSource = new CASCIIHexDecodeFilter(pSource);
+	else if (strcmp(pName, "RunLengthDecode") == 0 || strcmp(pName, "RL") == 0)
+		assert(false);
+	else if (strcmp(pName, "CCITTFaxDecode") == 0 || strcmp(pName, "CCF") == 0)
+		assert(false);
+	else if (strcmp(pName, "DCTDecode") == 0 || strcmp(pName, "DCT") == 0)
+		assert(false);
 	else
 	{
 		printf("%s\n", pName);
