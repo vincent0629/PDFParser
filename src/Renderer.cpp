@@ -46,6 +46,7 @@ CFontData::CFontData()
 	, m_pCodeToName(standardEncoding)
 	, m_pFontFile(NULL)
 {
+	memset(m_pDifferences, 0, sizeof(m_pDifferences));
 }
 
 CFontData::~CFontData()
@@ -80,8 +81,16 @@ void CRenderer::Render(int nPage)
 	m_bStop = false;
 
 	pMediaBox = (CArray *)pPage->GetValue("MediaBox");
-	width = ((CNumeric *)pMediaBox->GetValue(2))->GetValue();
-	height = ((CNumeric *)pMediaBox->GetValue(3))->GetValue();
+	if (!pMediaBox)
+	{
+		width = 600;
+		height = 800;
+	}
+	else
+	{
+		width = ((CNumeric *)pMediaBox->GetValue(2))->GetValue();
+		height = ((CNumeric *)pMediaBox->GetValue(3))->GetValue();
+	}
 
 	RenderPage(pPage, width, height);
 
