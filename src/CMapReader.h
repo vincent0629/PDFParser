@@ -1,17 +1,17 @@
 #ifndef _CMAPREADER_H_
 #define _CMAPREADER_H_
 
-class CCMap;
-class IInputStream;
+class CMap;
+class InputStream;
 
-class CCMapReader
+class CMapReader
 {
 public:
-	CCMapReader(CCMap *pCMap);
-	void Read(IInputStream *pSource);
+	CMapReader(CMap *pCMap);
+	void Read(InputStream *pSource);
 
 private:
-	CCMap *m_pCMap;
+	CMap *m_pCMap;
 	int m_nCount;
 };
 

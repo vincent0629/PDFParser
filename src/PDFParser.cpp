@@ -8,20 +8,20 @@
 #include <stdlib.h>
 #include <locale.h>
 
-static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
+static void Run(const char *pFile, RendererFactory::RendererType nType)
 {
-	CFileInputStream *pSource;
-	CPDF *pPDF;
+	FileInputStream *pSource;
+	PDF *pPDF;
 	const char *pVersion;
-	CRenderer *pRenderer;
+	Renderer *pRenderer;
 	char str[64], *token[5];
 	int n;
-	STrailer *pTrailer;
-	CObject *pObj;
-	IInputStream *pIS;
+	Trailer *pTrailer;
+	Object *pObj;
+	InputStream *pIS;
 
-	pSource = new CFileInputStream(pFile);
-	pPDF = new CPDF(pSource);
+	pSource = new FileInputStream(pFile);
+	pPDF = new PDF(pSource);
 	pVersion = pPDF->GetVersion();
 	if (*pVersion == '\0')
 		printf("Invalid PDF.\n");
@@ -29,7 +29,7 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 	{
 		printf("PDF: %s\n%d pages\n", pVersion, pPDF->GetPageNum());
 
-		pRenderer = CRendererFactory::Create(nType, pPDF);
+		pRenderer = RendererFactory::Create(nType, pPDF);
 
 		while (true)
 		{
@@ -52,7 +52,7 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 				pTrailer = pPDF->GetTrailer();
 				while (pTrailer != NULL)
 				{
-					CObject::Print(pTrailer->pDict);
+					Object::Print(pTrailer->pDict);
 					printf("\n");
 					pTrailer = pTrailer->pPrev;
 				}
@@ -65,11 +65,11 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 				else
 				{
 					printf("offset = %u\n", pObj->GetOffset());
-					CObject::Print(pObj);
+					Object::Print(pObj);
 					printf("\n");
-					if (pObj->GetType() == CObject::OBJ_STREAM && n >= 3)
+					if (pObj->GetType() == Object::OBJ_STREAM && n >= 3)
 					{
-						pIS = pPDF->CreateInputStream((CStream *)pObj);
+						pIS = pPDF->CreateInputStream((Stream *)pObj);
 						printf("----- begin %d bytes -----\n", pIS->Available());
 						while ((n = pIS->Read(str, sizeof(str) - 1)) > 0)
 						{
@@ -89,7 +89,7 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 					printf("Page doesn't exist.\n");
 				else
 				{
-					CObject::Print(pObj);
+					Object::Print(pObj);
 					delete pObj;
 
 					printf("\n");
@@ -104,8 +104,8 @@ static void Run(const char *pFile, CRendererFactory::Renderer_t nType)
 					pObj = pPDF->GetObject(n);
 					if (pObj == NULL)
 						break;
-					if (pObj->GetType() == CObject::OBJ_STREAM)
-						printf("Stream #%d size=%d\n", n, ((CStream *)pObj)->GetSize());
+					if (pObj->GetType() == Object::OBJ_STREAM)
+						printf("Stream #%d size=%d\n", n, ((Stream *)pObj)->GetSize());
 					delete pObj;
 					++n;
 				}
@@ -122,13 +122,13 @@ int main(int argc, char *argv[])
 {
 	int i;
 	const char *pFile;
-	CRendererFactory::Renderer_t nType;
+	RendererFactory::RendererType nType;
 
 	if (argc == 1)
 		return 0;
 
 	setlocale(LC_CTYPE, "");
-	nType = CRendererFactory::TEXT;
+	nType = RendererFactory::TEXT;
 	for (i = 1; i < argc; i++)
 	{
 		if (*argv[i] == '-')
@@ -137,13 +137,13 @@ int main(int argc, char *argv[])
 			{
 				++i;
 				if (*argv[i] == 'o')
-					nType = CRendererFactory::OBJECT;
+					nType = RendererFactory::OBJECT;
 				else if (*argv[i] == 'r')
-					nType = CRendererFactory::RAW;
+					nType = RendererFactory::RAW;
 				else if (*argv[i] == 'c')
-					nType = CRendererFactory::CAIRO;
+					nType = RendererFactory::CAIRO;
 				else
-					nType = CRendererFactory::TEXT;
+					nType = RendererFactory::TEXT;
 			}
 		}
 		else

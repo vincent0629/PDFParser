@@ -4,23 +4,23 @@
 #include "RawRenderer.h"
 #include "TextRenderer.h"
 
-CRenderer *CRendererFactory::Create(Renderer_t nType, CPDF *pPDF)
+Renderer *RendererFactory::Create(RendererType nType, PDF *pPDF)
 {
-	CRenderer *pRenderer;
+	Renderer *pRenderer;
 
 	switch (nType)
 	{
 		case OBJECT:
-			pRenderer = new CObjRenderer(pPDF);
+			pRenderer = new ObjRenderer(pPDF);
 			break;
 		case RAW:
-			pRenderer = new CRawRenderer(pPDF);
+			pRenderer = new RawRenderer(pPDF);
 			break;
 		case TEXT:
-			pRenderer = new CTextRenderer(pPDF);
+			pRenderer = new TextRenderer(pPDF);
 			break;
 		case CAIRO:
-			pRenderer = new CCairoRenderer(pPDF);
+			pRenderer = new CairoRenderer(pPDF);
 			break;
 	}
 	return pRenderer;

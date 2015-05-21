@@ -3,46 +3,46 @@
 #include <stdio.h>
 #include <string.h>
 
-CTextRenderer::CTextRenderer(CPDF *pPDF) : CRenderer(pPDF)
+TextRenderer::TextRenderer(PDF *pPDF) : Renderer(pPDF)
 {
 }
 
-void CTextRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nParams)
+void TextRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 {
 	const char *cstr;
 	int i, n, index;
-	CObject *pObj;
+	Object *pObj;
 
-	cstr = ((COperator *)pOp)->GetValue();
+	cstr = ((Operator *)pOp)->GetValue();
 	if (strcmp(cstr, "Tf") == 0)
-		ChangeFont(((CName *)pParams[0])->GetValue());
+		ChangeFont(((Name *)pParams[0])->GetValue());
 	else if (strcmp(cstr, "TD") == 0 || strcmp(cstr, "T*") == 0)
 		putchar('\n');
 	else if (strcmp(cstr, "Tj") == 0)
-		RenderText((CString *)pParams[0]);
+		RenderText((String *)pParams[0]);
 	else if (strcmp(cstr, "'") == 0)
 	{
 		putchar('\n');
-		RenderText((CString *)pParams[0]);
+		RenderText((String *)pParams[0]);
 	}
 	else if (strcmp(cstr, "\"") == 0)
 	{
 		putchar('\n');
-		RenderText((CString *)pParams[2]);
+		RenderText((String *)pParams[2]);
 	}
 	else if (strcmp(cstr, "TJ") == 0)
 	{
-		n = ((CArray *)pParams[0])->GetSize();
+		n = ((Array *)pParams[0])->GetSize();
 		for (i = 0; i < n; i++)
 		{
-			pObj = ((CArray *)pParams[0])->GetValue(i);
-			if (pObj->GetType() == CObject::OBJ_STRING)
-				RenderText((CString *)pObj);
+			pObj = ((Array *)pParams[0])->GetValue(i);
+			if (pObj->GetType() == Object::OBJ_STRING)
+				RenderText((String *)pObj);
 		}
 	}
 }
 
-void CTextRenderer::RenderString(const char *str)
+void TextRenderer::RenderString(const char *str)
 {
 	printf("%s\n", str);
 }

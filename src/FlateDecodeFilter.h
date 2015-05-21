@@ -3,11 +3,11 @@
 
 #include "CompoundFilter.h"
 
-class CFlateDecodeFilter : public CCompoundFilter
+class FlateDecodeFilter : public CompoundFilter
 {
 public:
-	CFlateDecodeFilter(IInputStream *pSource);
-	~CFlateDecodeFilter();
+	FlateDecodeFilter(InputStream *pSource);
+	~FlateDecodeFilter();
 
 private:
 	unsigned char *m_pBuffer;

@@ -1,13 +1,13 @@
 #ifndef _FILTERFACTORY_H_
 #define _FILTERFACTORY_H_
 
-class CDictionary;
-class IInputStream;
+class Dictionary;
+class InputStream;
 
-class CFilterFactory
+class FilterFactory
 {
 public:
-	static IInputStream *Create(const char *pName, CDictionary *pParms, IInputStream *pSource);
+	static InputStream *Create(const char *pName, Dictionary *pParms, InputStream *pSource);
 };
 
 #endif

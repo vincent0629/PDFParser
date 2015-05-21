@@ -8,15 +8,15 @@
 #include <stdio.h>
 #include <string.h>
 
-CPDF::CPDF(IInputStream *pSource)
+PDF::PDF(InputStream *pSource)
 {
 	char str[10];
 	int nOffset, c, n;
-	CDictionary *pDict;
-	STrailer *pTrailer;
-	CObject *pObj;
+	Dictionary *pDict;
+	Trailer *pTrailer;
+	Object *pObj;
 
-	m_pSource = new CDataInputStream(pSource);
+	m_pSource = new DataInputStream(pSource);
 	*str = m_pSource->Read();
 	m_pSource->ReadStr(str + 1, sizeof(str) - 1);
 	if (strncmp(str, "%PDF-", 5) != 0)
@@ -50,12 +50,12 @@ CPDF::CPDF(IInputStream *pSource)
 	}
 	nOffset = m_pSource->ReadInt();
 
-	m_pXref = new CXref();
-	m_pReader = new CObjReader(m_pSource, m_pXref);
+	m_pXref = new Xref();
+	m_pReader = new ObjReader(m_pSource, m_pXref);
 	m_pTrailer = NULL;
 	do
 	{
-		pTrailer = new STrailer;
+		pTrailer = new Trailer;
 		m_pSource->Seek(nOffset, SEEK_SET);
 		m_pSource->ReadStr(str, sizeof(str));
 		if (strcmp(str, "xref") == 0)
@@ -63,13 +63,13 @@ CPDF::CPDF(IInputStream *pSource)
 			m_pXref->Read(m_pSource);
 			m_pSource->ReadStr(str, sizeof(str));  //trailer
 			pTrailer->pStream = NULL;
-			pTrailer->pDict = (CDictionary *)m_pReader->ReadObj();
+			pTrailer->pDict = (Dictionary *)m_pReader->ReadObj();
 		}
 		else
 		{
 			m_pSource->ReadInt();
 			m_pSource->ReadStr(str, sizeof(str));  //obj
-			pTrailer->pStream = (CStream *)m_pReader->ReadObj();  //stream
+			pTrailer->pStream = (Stream *)m_pReader->ReadObj();  //stream
 			pTrailer->pDict = pTrailer->pStream->GetDictionary();
 			pSource = CreateInputStream(pTrailer->pStream);
 			m_pXref->Read(pSource);
@@ -85,7 +85,7 @@ CPDF::CPDF(IInputStream *pSource)
 
 		pObj = pTrailer->pDict->GetValue("Prev");
 		if (pObj != NULL)
-			nOffset = ((CNumeric *)pObj)->GetValue();
+			nOffset = ((Numeric *)pObj)->GetValue();
 	} while (pObj != NULL);
 
 	m_nPageNum = 0;
@@ -94,14 +94,14 @@ CPDF::CPDF(IInputStream *pSource)
 		pObj = GetObject(pTrailer->pDict->GetValue("Root"));
 		if (pObj != NULL)
 		{
-			m_pPages = (CDictionary *)GetObject(((CDictionary *)pObj)->GetValue("Pages"));
-			m_nPageNum = ((CNumeric *)GetObject(m_pPages->GetValue("Count")))->GetValue();
+			m_pPages = (Dictionary *)GetObject(((Dictionary *)pObj)->GetValue("Pages"));
+			m_nPageNum = ((Numeric *)GetObject(m_pPages->GetValue("Count")))->GetValue();
 			break;
 		}
 	}
 }
 
-CPDF::~CPDF()
+PDF::~PDF()
 {
 	if (m_pSource != NULL)
 	{
@@ -121,94 +121,94 @@ CPDF::~CPDF()
 	}
 }
 
-const char *CPDF::GetVersion(void)
+const char *PDF::GetVersion(void)
 {
 	return m_pVersion;
 }
 
-CXref *CPDF::GetXref(void)
+Xref *PDF::GetXref(void)
 {
 	return m_pXref;
 }
 
-STrailer *CPDF::GetTrailer(void)
+Trailer *PDF::GetTrailer(void)
 {
 	return m_pTrailer;
 }
 
-CObject *CPDF::GetObject(int nNum)
+Object *PDF::GetObject(int nNum)
 {
 	return m_pReader->ReadIndirectObj(nNum, 0);
 }
 
-CObject *CPDF::GetObject(CObject *pObj)
+Object *PDF::GetObject(Object *pObj)
 {
-	CObject *pTarget;
+	Object *pTarget;
 
-	while (pObj != NULL && pObj->GetType() == CObject::OBJ_REFERENCE)
+	while (pObj != NULL && pObj->GetType() == Object::OBJ_REFERENCE)
 	{
-		pTarget = ((CReference *)pObj)->GetObject();
+		pTarget = ((Reference *)pObj)->GetObject();
 		if (pTarget == NULL)
 		{
-			pTarget = GetObject(((CReference *)pObj)->GetObjNum());
-			((CReference *)pObj)->SetObject(pTarget);
+			pTarget = GetObject(((Reference *)pObj)->GetObjNum());
+			((Reference *)pObj)->SetObject(pTarget);
 		}
 		pObj = pTarget;
 	}
 	return pObj;
 }
 
-IInputStream *CPDF::CreateInputStream(CStream *pStream)
+InputStream *PDF::CreateInputStream(Stream *pStream)
 {
-	IInputStream *pSource;
-	CDictionary *pDict;
-	CObject *pFilter, *pParms;
+	InputStream *pSource;
+	Dictionary *pDict;
+	Object *pFilter, *pParms;
 	int i, n;
 
-	pSource = new CByteArrayInputStream(pStream->GetValue(), pStream->GetSize());
+	pSource = new ByteArrayInputStream(pStream->GetValue(), pStream->GetSize());
 	pDict = pStream->GetDictionary();
 	pFilter = GetObject(pDict->GetValue("Filter"));
 	if (pFilter != NULL)
 	{
 		pParms = GetObject(pDict->GetValue("DecodeParms"));
-		if (pFilter->GetType() == CObject::OBJ_NAME)
-			pSource = CFilterFactory::Create(((CName *)pFilter)->GetValue(), (CDictionary *)pParms, pSource);
-		else if (pFilter->GetType() == CObject::OBJ_ARRAY)
+		if (pFilter->GetType() == Object::OBJ_NAME)
+			pSource = FilterFactory::Create(((Name *)pFilter)->GetValue(), (Dictionary *)pParms, pSource);
+		else if (pFilter->GetType() == Object::OBJ_ARRAY)
 		{
-			n = ((CArray *)pFilter)->GetSize();
+			n = ((Array *)pFilter)->GetSize();
 			for (i = 0; i < n; i++)
-				pSource = CFilterFactory::Create(((CName *)GetObject(((CArray *)pFilter)->GetValue(i)))->GetValue(), pParms == NULL? NULL : (CDictionary *)((CArray *)pParms)->GetValue(i), pSource);
+				pSource = FilterFactory::Create(((Name *)GetObject(((Array *)pFilter)->GetValue(i)))->GetValue(), pParms == NULL? NULL : (Dictionary *)((Array *)pParms)->GetValue(i), pSource);
 		}
 	}
 	return pSource;
 }
 
-int CPDF::GetPageNum(void)
+int PDF::GetPageNum(void)
 {
 	return m_nPageNum;
 }
 
-CDictionary *CPDF::GetPage(int nIndex)
+Dictionary *PDF::GetPage(int nIndex)
 {
 	return nIndex > 0? GetPage(m_pPages, nIndex) : NULL;
 }
 
-CDictionary *CPDF::GetPage(CDictionary *pParent, int nIndex)
+Dictionary *PDF::GetPage(Dictionary *pParent, int nIndex)
 {
-	CArray *pKids;
+	Array *pKids;
 	int i, nSize, nCount;
-	CReference *pRef;
-	CDictionary *pChild, *pRet;
+	Reference *pRef;
+	Dictionary *pChild, *pRet;
 
-	pKids = (CArray *)pParent->GetValue("Kids");
+	pKids = (Array *)pParent->GetValue("Kids");
 	nSize = pKids->GetSize();
 	for (i = 0; i < nSize; i++)
 	{
-		pRef = (CReference *)pKids->GetValue(i);
-		pChild = (CDictionary *)GetObject(pRef->GetObjNum());
-		if (strcmp(((CName *)pChild->GetValue("Type"))->GetValue(), "Pages") == 0)  //not leaf node
+		pRef = (Reference *)pKids->GetValue(i);
+		pChild = (Dictionary *)GetObject(pRef->GetObjNum());
+		if (strcmp(((Name *)pChild->GetValue("Type"))->GetValue(), "Pages") == 0)  //not leaf node
 		{
-			nCount = ((CNumeric *)pChild->GetValue("Count"))->GetValue();
+			nCount = ((Numeric *)pChild->GetValue("Count"))->GetValue();
 			if (nIndex <= nCount)
 			{
 				pRet = GetPage(pChild, nIndex);

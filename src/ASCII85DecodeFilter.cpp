@@ -1,7 +1,7 @@
 #include "ASCII85DecodeFilter.h"
 #include "ByteArrayInputStream.h"
 
-CASCII85DecodeFilter::CASCII85DecodeFilter(IInputStream *pSource) : CCompoundFilter(pSource)
+ASCII85DecodeFilter::ASCII85DecodeFilter(InputStream *pSource) : CompoundFilter(pSource)
 {
 	unsigned char *ptr;
 	int i, j, c, n;
@@ -47,10 +47,10 @@ CASCII85DecodeFilter::CASCII85DecodeFilter(IInputStream *pSource) : CCompoundFil
 		if (i < 4)
 			break;
 	}
-	m_pStream = new CByteArrayInputStream(m_pBuffer, ptr - m_pBuffer);
+	m_pStream = new ByteArrayInputStream(m_pBuffer, ptr - m_pBuffer);
 }
 
-CASCII85DecodeFilter::~CASCII85DecodeFilter()
+ASCII85DecodeFilter::~ASCII85DecodeFilter()
 {
 	delete m_pStream;
 	delete[] m_pBuffer;

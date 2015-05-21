@@ -1,11 +1,11 @@
 #include "Filter.h"
 
-CFilter::CFilter(IInputStream *pSource)
+Filter::Filter(InputStream *pSource)
 {
 	m_pSource = pSource;
 }
 
-CFilter::~CFilter()
+Filter::~Filter()
 {
 	delete m_pSource;
 }

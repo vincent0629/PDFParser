@@ -2,14 +2,14 @@
 #include "InputStream.h"
 #include <stdio.h>
 
-typedef struct _SSubSection
+typedef struct _SubSection
 {
 	int nBegin, nNum;
 	unsigned int *pOffset;
-	_SSubSection *pNext;
-} SSubSection;
+	_SubSection *pNext;
+} SubSection;
 
-int ReadInt(IInputStream *pSource)
+int ReadInt(InputStream *pSource)
 {
 	int c, n;
 
@@ -29,14 +29,14 @@ int ReadInt(IInputStream *pSource)
 	return n;
 }
 
-CXref::CXref()
+Xref::Xref()
 {
 	m_pHead = NULL;
 }
 
-CXref::~CXref()
+Xref::~Xref()
 {
-	SSubSection *pSec;
+	SubSection *pSec;
 
 	while (m_pHead != NULL)
 	{
@@ -47,14 +47,14 @@ CXref::~CXref()
 	}
 }
 
-void CXref::Read(IInputStream *pSource)
+void Xref::Read(InputStream *pSource)
 {
-	SSubSection *pSec;
+	SubSection *pSec;
 	int i, c;
 
 	do
 	{
-		pSec = new SSubSection;
+		pSec = new SubSection;
 		pSec->nBegin = ReadInt(pSource);
 		pSec->nNum = ReadInt(pSource);
 		pSec->pOffset = new unsigned int[pSec->nNum];
@@ -74,9 +74,9 @@ void CXref::Read(IInputStream *pSource)
 	} while (c != 't' && c != EOF);  //trailer
 }
 
-unsigned int CXref::GetOffset(int nObjNum, int nGeneration)
+unsigned int Xref::GetOffset(int nObjNum, int nGeneration)
 {
-	SSubSection *pSec;
+	SubSection *pSec;
 
 	pSec = m_pHead;
 	while (pSec != NULL)

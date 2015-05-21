@@ -3,7 +3,7 @@
 #include <string.h>
 #include <zlib.h>
 
-CFlateDecodeFilter::CFlateDecodeFilter(IInputStream *pSource) : CCompoundFilter(pSource)
+FlateDecodeFilter::FlateDecodeFilter(InputStream *pSource) : CompoundFilter(pSource)
 {
 	unsigned char *pBuffer;
 	unsigned long nSrcSize, nSize;
@@ -25,10 +25,10 @@ CFlateDecodeFilter::CFlateDecodeFilter(IInputStream *pSource) : CCompoundFilter(
 	inflateEnd(&zs);
 	delete[] pBuffer;
 
-	m_pStream = new CByteArrayInputStream(m_pBuffer, nSize);
+	m_pStream = new ByteArrayInputStream(m_pBuffer, nSize);
 }
 
-CFlateDecodeFilter::~CFlateDecodeFilter()
+FlateDecodeFilter::~FlateDecodeFilter()
 {
 	delete m_pStream;
 	delete[] m_pBuffer;

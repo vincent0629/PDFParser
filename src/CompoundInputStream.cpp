@@ -1,30 +1,30 @@
 #include "CompoundInputStream.h"
 
-CCompoundInputStream::~CCompoundInputStream()
+CompoundInputStream::~CompoundInputStream()
 {
 }
 
-unsigned int CCompoundInputStream::Available(void)
+unsigned int CompoundInputStream::Available(void)
 {
 	return m_pSource->Available();
 }
 
-unsigned int CCompoundInputStream::Position(void)
+unsigned int CompoundInputStream::Position(void)
 {
 	return m_pSource->Position();
 }
 
-int CCompoundInputStream::Seek(int nOffset, int nFrom)
+int CompoundInputStream::Seek(int nOffset, int nFrom)
 {
 	return m_pSource->Seek(nOffset, nFrom);
 }
 
-int CCompoundInputStream::Read(void)
+int CompoundInputStream::Read(void)
 {
 	return m_pSource->Read();
 }
 
-int CCompoundInputStream::Read(void *pBuffer, int nSize)
+int CompoundInputStream::Read(void *pBuffer, int nSize)
 {
 	return m_pSource->Read(pBuffer, nSize);
 }

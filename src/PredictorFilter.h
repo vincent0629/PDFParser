@@ -3,10 +3,10 @@
 
 #include "Filter.h"
 
-class CPredictorFilter : public CFilter
+class PredictorFilter : public Filter
 {
 public:
-	CPredictorFilter(IInputStream *pSource, int nColors, int nBitsPerComponent, int nColumns);
+	PredictorFilter(InputStream *pSource, int nColors, int nBitsPerComponent, int nColumns);
 	unsigned int Available(void);
 	unsigned int Position(void);
 	int Seek(int nOffset, int nFrom);

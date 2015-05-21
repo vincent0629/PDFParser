@@ -3,10 +3,10 @@
 
 #include "Filter.h"
 
-class CCompoundFilter : public CFilter
+class CompoundFilter : public Filter
 {
 public:
-	CCompoundFilter(IInputStream *pSource);
+	CompoundFilter(InputStream *pSource);
 	virtual unsigned int Available(void);
 	virtual unsigned int Position(void);
 	virtual int Seek(int nOffset, int nFrom);
@@ -14,7 +14,7 @@ public:
 	virtual int Read(void *pBuffer, int nSize);
 
 protected:
-	IInputStream *m_pStream;
+	InputStream *m_pStream;
 };
 
 #endif

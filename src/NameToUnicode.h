@@ -3,17 +3,17 @@
 
 #include <wchar.h>
 
-typedef struct _SNameToUnicode
+typedef struct _NameToUnicode
 {
 	wchar_t unicode;
 	const char *name;
-} SNameToUnicode;
+} NameToUnicode;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-extern SNameToUnicode nameToUnicode[];
+extern NameToUnicode nameToUnicode[];
 #ifdef __cplusplus
 };
 #endif

@@ -3,13 +3,13 @@
 
 #include "Renderer.h"
 
-class CRawRenderer : public CRenderer
+class RawRenderer : public Renderer
 {
 public:
-	CRawRenderer(CPDF *pPDF);
+	RawRenderer(PDF *pPDF);
 
 protected:
-	void RenderContents(CStream *pContents);
+	void RenderContents(Stream *pContents);
 };
 
 #endif

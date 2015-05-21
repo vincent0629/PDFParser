@@ -10,14 +10,14 @@ struct _cairo_font_face;
 struct FT_LibraryRec_;
 struct FT_FaceRec_;
 
-class CCairoRenderer : public CRenderer
+class CairoRenderer : public Renderer
 {
 public:
-	CCairoRenderer(CPDF *pPDF);
+	CairoRenderer(PDF *pPDF);
 
 protected:
-	void RenderPage(CDictionary *pPage, double dWidth, double dHeight);
-	void RenderOperator(COperator *pOp, CObject **pParams, int nParams);
+	void RenderPage(Dictionary *pPage, double dWidth, double dHeight);
+	void RenderOperator(Operator *pOp, Object **pParams, int nParams);
 	void RenderString(const char *str);
 
 private:
@@ -30,13 +30,13 @@ private:
 	FT_LibraryRec_ *m_ft;
 	_cairo_font_face *m_cairo_face;
 
-	void ConvertNumeric(CObject **pParams, int nParams, double *v);
+	void ConvertNumeric(Object **pParams, int nParams, double *v);
 	void SetGraphicsState(const char *pName);
-	void SetDash(CObject *pArray, CObject *pPhase);
+	void SetDash(Object *pArray, Object *pPhase);
 	void SetIntent(const char *pName);
 	void Stroke(void);
-	_cairo_surface *CreateImageSurface(CStream *pStream, int nWidth, int nHeight);
-	void SetFontFace(IInputStream *pStream);
+	_cairo_surface *CreateImageSurface(Stream *pStream, int nWidth, int nHeight);
+	void SetFontFace(InputStream *pStream);
 };
 
 #endif

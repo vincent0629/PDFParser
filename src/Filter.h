@@ -3,14 +3,14 @@
 
 #include "InputStream.h"
 
-class CFilter : public IInputStream
+class Filter : public InputStream
 {
 public:
-	CFilter(IInputStream *pSource);
-	virtual ~CFilter();
+	Filter(InputStream *pSource);
+	virtual ~Filter();
 
 protected:
-	IInputStream *m_pSource;
+	InputStream *m_pSource;
 };
 
 #endif

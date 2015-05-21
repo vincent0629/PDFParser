@@ -14,7 +14,7 @@ static int HtoD(int c)
 	return c;
 }
 
-CASCIIHexDecodeFilter::CASCIIHexDecodeFilter(IInputStream *pSource) : CCompoundFilter(pSource)
+ASCIIHexDecodeFilter::ASCIIHexDecodeFilter(InputStream *pSource) : CompoundFilter(pSource)
 {
 	unsigned char *ptr;
 	int c, n;
@@ -35,10 +35,10 @@ CASCIIHexDecodeFilter::CASCIIHexDecodeFilter(IInputStream *pSource) : CCompoundF
 		if (c == '>')
 			break;
 	}
-	m_pStream = new CByteArrayInputStream(m_pBuffer, ptr - m_pBuffer);
+	m_pStream = new ByteArrayInputStream(m_pBuffer, ptr - m_pBuffer);
 }
 
-CASCIIHexDecodeFilter::~CASCIIHexDecodeFilter()
+ASCIIHexDecodeFilter::~ASCIIHexDecodeFilter()
 {
 	delete m_pStream;
 	delete[] m_pBuffer;

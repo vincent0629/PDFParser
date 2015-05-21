@@ -11,7 +11,7 @@ static bool IsSpace(int c)
 	return c >= 0 && c <= ' ';
 }
 
-static const char *ReadToken(IInputStream *pSource)
+static const char *ReadToken(InputStream *pSource)
 {
 	static char str[80];
 	char *ptr;
@@ -65,13 +65,13 @@ static const char *ReadToken(IInputStream *pSource)
 	return str;
 }
 
-CCMapReader::CCMapReader(CCMap *pCMap)
+CMapReader::CMapReader(CMap *pCMap)
 {
 	m_pCMap = pCMap;
 	m_nCount = 0;
 }
 
-void CCMapReader::Read(IInputStream *pSource)
+void CMapReader::Read(InputStream *pSource)
 {
 	const char *str;
 	unsigned int i, nFrom, nTo, nCode;

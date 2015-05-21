@@ -2,24 +2,24 @@
 #include <stdio.h>
 #include <string.h>
 
-CByteArrayInputStream::CByteArrayInputStream(const unsigned char *pData, int nSize)
+ByteArrayInputStream::ByteArrayInputStream(const unsigned char *pData, int nSize)
 {
 	m_pData = pData;
 	m_nSize = nSize;
 	m_ptr = m_pData;
 }
 
-unsigned int CByteArrayInputStream::Available(void)
+unsigned int ByteArrayInputStream::Available(void)
 {
 	return m_pData + m_nSize - m_ptr;
 }
 
-unsigned int CByteArrayInputStream::Position(void)
+unsigned int ByteArrayInputStream::Position(void)
 {
 	return m_ptr - m_pData;
 }
 
-int CByteArrayInputStream::Seek(int nOffset, int nFrom)
+int ByteArrayInputStream::Seek(int nOffset, int nFrom)
 {
 	const unsigned char *ptr;
 
@@ -36,12 +36,12 @@ int CByteArrayInputStream::Seek(int nOffset, int nFrom)
 	return 0;
 }
 
-int CByteArrayInputStream::Read(void)
+int ByteArrayInputStream::Read(void)
 {
 	return m_ptr >= m_pData + m_nSize? EOF : *m_ptr++;
 }
 
-int CByteArrayInputStream::Read(void *pBuffer, int nSize)
+int ByteArrayInputStream::Read(void *pBuffer, int nSize)
 {
 	if (nSize > m_pData + m_nSize - m_ptr)
 		nSize = m_pData + m_nSize - m_ptr;

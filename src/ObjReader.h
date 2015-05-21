@@ -1,20 +1,20 @@
 #ifndef _OBJREADER_H_
 #define _OBJREADER_H_
 
-class CDataInputStream;
-class CObject;
-class CXref;
+class DataInputStream;
+class Object;
+class Xref;
 
-class CObjReader
+class ObjReader
 {
 public:
-	CObjReader(CDataInputStream *pSource, CXref *pXref);
-	CObject *ReadObj(void);
-	CObject *ReadIndirectObj(int nObjNum, int nGeneration);
+	ObjReader(DataInputStream *pSource, Xref *pXref);
+	Object *ReadObj(void);
+	Object *ReadIndirectObj(int nObjNum, int nGeneration);
 
 private:
-	CDataInputStream *m_pSource;
-	CXref *m_pXref;
+	DataInputStream *m_pSource;
+	Xref *m_pXref;
 };
 
 #endif

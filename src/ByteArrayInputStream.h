@@ -3,10 +3,10 @@
 
 #include "InputStream.h"
 
-class CByteArrayInputStream : public IInputStream
+class ByteArrayInputStream : public InputStream
 {
 public:
-	CByteArrayInputStream(const unsigned char *pData, int nSize);
+	ByteArrayInputStream(const unsigned char *pData, int nSize);
 	unsigned int Available(void);
 	unsigned int Position(void);
 	int Seek(int nOffset, int nFrom);

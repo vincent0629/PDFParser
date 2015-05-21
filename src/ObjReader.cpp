@@ -6,18 +6,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-CObjReader::CObjReader(CDataInputStream *pSource, CXref *pXref)
+ObjReader::ObjReader(DataInputStream *pSource, Xref *pXref)
 {
 	m_pSource = pSource;
 	m_pXref = pXref;
 }
 
-CObject *CObjReader::ReadObj(void)
+Object *ObjReader::ReadObj(void)
 {
 	unsigned int nOffset, nOffTmp;
 	int c, n;
-	CObject *pObj, *pObj2;
-	CDictionary *pDict;
+	Object *pObj, *pObj2;
+	Dictionary *pDict;
 	char str[32 * 1024], *ptr;
 	int nParentheses;
 
@@ -26,12 +26,12 @@ CObject *CObjReader::ReadObj(void)
 	switch (c)
 	{
 		case '/':  //name
-			pObj = new CName();
+			pObj = new Name();
 			m_pSource->ReadStr(str, sizeof(str));
-			((CName *)pObj)->SetValue(str);
+			((Name *)pObj)->SetValue(str);
 			break;
 		case '(':  //string
-			pObj = new CString();
+			pObj = new String();
 			ptr = str;
 			nParentheses = 0;
 			while (true)
@@ -52,13 +52,13 @@ CObject *CObjReader::ReadObj(void)
 				*ptr++ = c;
 			}
 			*ptr = '\0';
-			((CString *)pObj)->SetValue(str, ptr - str, CString::LITERAL);
+			((String *)pObj)->SetValue(str, ptr - str, String::LITERAL);
 			break;
 		case '<':
 			c = m_pSource->Read();
 			if (c == '<')  //dictionary
 			{
-				pDict = new CDictionary();
+				pDict = new Dictionary();
 				while (true)
 				{
 					m_pSource->Skip();
@@ -71,21 +71,21 @@ CObject *CObjReader::ReadObj(void)
 						if (strncmp(str, "stream", 6) == 0)  //stream
 						{
 							pObj = pDict->GetValue("Length");
-							if (pObj->GetType() == CObject::OBJ_REFERENCE)
+							if (pObj->GetType() == Object::OBJ_REFERENCE)
 							{
 								nOffTmp = m_pSource->Position();
-								pObj = ReadIndirectObj(((CReference *)pObj)->GetObjNum(), ((CReference *)pObj)->GetGeneration());
+								pObj = ReadIndirectObj(((Reference *)pObj)->GetObjNum(), ((Reference *)pObj)->GetGeneration());
 								m_pSource->Seek(nOffTmp, SEEK_SET);
-								n = ((CNumeric *)pObj)->GetValue();
+								n = ((Numeric *)pObj)->GetValue();
 								delete pObj;
 							}
 							else
-								n = ((CNumeric *)pObj)->GetValue();
-							pObj = new CStream(pDict);
+								n = ((Numeric *)pObj)->GetValue();
+							pObj = new Stream(pDict);
 							m_pSource->Skip();
 							ptr = new char[n];
 							m_pSource->Read(ptr, n);
-							((CStream *)pObj)->SetValue((unsigned char *)ptr, n);
+							((Stream *)pObj)->SetValue((unsigned char *)ptr, n);
 							delete[] ptr;
 						}
 						else
@@ -106,14 +106,14 @@ CObject *CObjReader::ReadObj(void)
 			else  //hexadecimal string
 			{
 				m_pSource->Seek(-1, SEEK_CUR);
-				pObj = new CString();
+				pObj = new String();
 				n = m_pSource->ReadStr(str, sizeof(str));
-				((CString *)pObj)->SetValue(str, n, CString::HEXADECIMAL);
+				((String *)pObj)->SetValue(str, n, String::HEXADECIMAL);
 				m_pSource->Read();  //>
 			}
 			break;
 		case '[':  //array
-			pObj = new CArray();
+			pObj = new Array();
 			while (true)
 			{
 				m_pSource->Skip();
@@ -121,7 +121,7 @@ CObject *CObjReader::ReadObj(void)
 				if (c == ']')
 					break;
 				m_pSource->Seek(-1, SEEK_CUR);
-				((CArray *)pObj)->Add(ReadObj());
+				((Array *)pObj)->Add(ReadObj());
 			}
 			break;
 		default:
@@ -129,29 +129,29 @@ CObject *CObjReader::ReadObj(void)
 			m_pSource->ReadStr(str + 1, sizeof(str) - 1);
 			if ((c >= '0' && c <= '9') || c == '-' || c == '+' || c == '.')
 			{
-				pObj = new CNumeric();
-				((CNumeric *)pObj)->SetValue(atof(str));
+				pObj = new Numeric();
+				((Numeric *)pObj)->SetValue(atof(str));
 			}
 			else
 			{
 				if (strcmp(str, "R") == 0)
-					pObj = new CReference();
+					pObj = new Reference();
 				else if (strcmp(str, "true") == 0)
 				{
-					pObj = new CBoolean();
-					((CBoolean *)pObj)->SetValue(true);
+					pObj = new Boolean();
+					((Boolean *)pObj)->SetValue(true);
 				}
 				else if (strcmp(str, "false") == 0)
 				{
-					pObj = new CBoolean();
-					((CBoolean *)pObj)->SetValue(false);
+					pObj = new Boolean();
+					((Boolean *)pObj)->SetValue(false);
 				}
 				else if (strcmp(str, "null") == 0)
-					pObj = new CNull();
+					pObj = new Null();
 				else
 				{
-					pObj = new COperator();
-					((COperator *)pObj)->SetValue(str);
+					pObj = new Operator();
+					((Operator *)pObj)->SetValue(str);
 				}
 			}
 			break;
@@ -162,7 +162,7 @@ CObject *CObjReader::ReadObj(void)
 	return pObj;
 }
 
-CObject *CObjReader::ReadIndirectObj(int nObjNum, int nGeneration)
+Object *ObjReader::ReadIndirectObj(int nObjNum, int nGeneration)
 {
 	unsigned int nOffset;
 	char str[4];
@@ -174,7 +174,5 @@ CObject *CObjReader::ReadIndirectObj(int nObjNum, int nGeneration)
 	m_pSource->ReadInt();  //object number
 	m_pSource->ReadInt();  //generation
 	m_pSource->ReadStr(str, sizeof(str));  //obj
-if (nObjNum == 1589)
-	nObjNum = 1589;
 	return ReadObj();
 }

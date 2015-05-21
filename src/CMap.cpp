@@ -1,23 +1,23 @@
 #include "CMap.h"
 #include <string.h>
 
-CCMap::CCMap()
+CMap::CMap()
 {
 	memset(m_pTable, 0, sizeof(m_pTable));
 	m_pSecond = NULL;
 }
 
-CCMap::~CCMap()
+CMap::~CMap()
 {
 	delete m_pSecond;
 }
 
-void CCMap::Set(unsigned int nFrom, unsigned int nTo)
+void CMap::Set(unsigned int nFrom, unsigned int nTo)
 {
 	m_pTable[nFrom] = nTo;
 }
 
-unsigned int CCMap::Get(unsigned int nCode)
+unsigned int CMap::Get(unsigned int nCode)
 {
 	if (m_pTable[nCode] != 0)
 		nCode = m_pTable[nCode];
@@ -26,7 +26,7 @@ unsigned int CCMap::Get(unsigned int nCode)
 	return nCode;
 }
 
-void CCMap::Concat(CCMap *pCMap)
+void CMap::Concat(CMap *pCMap)
 {
 	m_pSecond = pCMap;
 }

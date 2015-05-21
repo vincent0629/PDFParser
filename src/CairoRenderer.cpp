@@ -19,24 +19,24 @@
 #endif
 
 #ifdef DEBUG_OPERATOR
-static void PrintNotImplementedOperator(COperator *pOp, CObject **pParams, int nParams)
+static void PrintNotImplementedOperator(Operator *pOp, Object **pParams, int nParams)
 {
 	printf("Not implemented: ");
 	for (int i = 0; i < nParams; ++i)
 	{
-		CObject::Print(pParams[i]);
+		Object::Print(pParams[i]);
 		printf(" ");
 	}
-	CObject::Print(pOp);
+	Object::Print(pOp);
 	printf("\n");
 }
 #endif
 
 static unsigned long Stream_ReadFunc(FT_Stream stream, unsigned long offset, unsigned char*  buffer, unsigned long count)
 {
-	IInputStream *pSource;
+	InputStream *pSource;
 
-	pSource = (IInputStream *)stream->descriptor.pointer;
+	pSource = (InputStream *)stream->descriptor.pointer;
 	pSource->Seek(offset, SEEK_SET);
 	return pSource->Read(buffer, count);
 }
@@ -46,13 +46,13 @@ static void Stream_CloseFunc(FT_Stream stream)
 	delete stream;
 }
 
-CCairoRenderer::CCairoRenderer(CPDF *pPDF) : CRenderer(pPDF)
+CairoRenderer::CairoRenderer(PDF *pPDF) : Renderer(pPDF)
 {
 }
 
-void CCairoRenderer::RenderPage(CDictionary *pPage, double dWidth, double dHeight)
+void CairoRenderer::RenderPage(Dictionary *pPage, double dWidth, double dHeight)
 {
-	CArray *pMediaBox;
+	Array *pMediaBox;
 	cairo_surface_t *pSurface;
 	char str[32];
 
@@ -75,7 +75,7 @@ void CCairoRenderer::RenderPage(CDictionary *pPage, double dWidth, double dHeigh
 	cairo_translate(m_pCairo, 0, dHeight);
 	cairo_scale(m_pCairo, 1.0, -1.0);
 
-	CRenderer::RenderPage(pPage, dWidth, dHeight);
+	Renderer::RenderPage(pPage, dWidth, dHeight);
 	sprintf(str, "%d.png", m_nPage);
 	cairo_surface_write_to_png(pSurface, str);
 
@@ -86,15 +86,15 @@ void CCairoRenderer::RenderPage(CDictionary *pPage, double dWidth, double dHeigh
 	cairo_surface_destroy(pSurface);
 }
 
-void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nParams)
+void CairoRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 {
 	const char *cstr;
 	double x, y;
 	double v[6];
 	int i, n;
-	CObject *pObj;
-	CStream *pStream;
-	CDictionary *pDict;
+	Object *pObj;
+	Stream *pStream;
+	Dictionary *pDict;
 	cairo_matrix_t matrix;
 	int nWidth, nHeight;
 	cairo_surface_t *pSurface;
@@ -171,13 +171,13 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Do") == 0)
 	{
-		pStream = (CStream *)GetResource(XOBJECT, ((CName *)pParams[0])->GetValue());
+		pStream = (Stream *)GetResource(XOBJECT, ((Name *)pParams[0])->GetValue());
 		pDict = pStream->GetDictionary();
 		pObj = pDict->GetValue("Subtype");
-		if (strcmp(((CName *)pObj)->GetValue(), "Image") == 0)
+		if (strcmp(((Name *)pObj)->GetValue(), "Image") == 0)
 		{
-			nWidth = ((CNumeric *)pDict->GetValue("Width"))->GetValue();
-			nHeight = ((CNumeric *)pDict->GetValue("Height"))->GetValue();
+			nWidth = ((Numeric *)pDict->GetValue("Width"))->GetValue();
+			nHeight = ((Numeric *)pDict->GetValue("Height"))->GetValue();
 			cairo_matrix_init(&matrix, 1.0 / nWidth, 0.0, 0.0, -1.0 / nHeight, 0.0, 1.0);
 			cairo_save(m_pCairo);
 			cairo_transform(m_pCairo, &matrix);
@@ -230,7 +230,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 		cairo_set_source_rgba(m_pCairo, v[0], v[0], v[0], 1.0);
 	}
 	else if (strcmp(cstr, "gs") == 0)  //set graphics state
-		SetGraphicsState(((CName *)pParams[0])->GetValue());
+		SetGraphicsState(((Name *)pParams[0])->GetValue());
 	else if (strcmp(cstr, "h") == 0)  //close subpath
 		cairo_close_path(m_pCairo);
 	else if (strcmp(cstr, "i") == 0)  //flatness tolerance
@@ -304,7 +304,7 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 		cairo_set_source_rgba(m_pCairo, v[0], v[1], v[2], 1.0);
 	}
 	else if (strcmp(cstr, "ri") == 0)  //color rendering intent
-		SetIntent(((CName *)pParams[0])->GetValue());
+		SetIntent(((Name *)pParams[0])->GetValue());
 	else if (strcmp(cstr, "s") == 0)  //close and stroke
 	{
 		cairo_close_path(m_pCairo);
@@ -356,24 +356,24 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 	else if (strcmp(cstr, "Tf") == 0)
 	{
-		SetFontFace(ChangeFont(((CName *)pParams[0])->GetValue()));
+		SetFontFace(ChangeFont(((Name *)pParams[0])->GetValue()));
 
 		ConvertNumeric(pParams + 1, nParams - 1, v);
 		cairo_matrix_init_scale(m_pFontMatrix, v[0], -v[0]);
 		cairo_set_font_matrix(m_pCairo, m_pFontMatrix);
 	}
 	else if (strcmp(cstr, "Tj") == 0)
-		RenderText((CString *)pParams[0]);
+		RenderText((String *)pParams[0]);
 	else if (strcmp(cstr, "TJ") == 0)
 	{
-		n = ((CArray *)pParams[0])->GetSize();
+		n = ((Array *)pParams[0])->GetSize();
 		for (i = 0; i < n; i++)
 		{
-			pObj = ((CArray *)pParams[0])->GetValue(i);
-			if (pObj->GetType() == CObject::OBJ_STRING)
-				RenderText((CString *)pObj);
-			else if (pObj->GetType() == CObject::OBJ_NUMERIC)
-				cairo_translate(m_pCairo, -((CNumeric *)pObj)->GetValue() / 1000.0, 0.0);
+			pObj = ((Array *)pParams[0])->GetValue(i);
+			if (pObj->GetType() == Object::OBJ_STRING)
+				RenderText((String *)pObj);
+			else if (pObj->GetType() == Object::OBJ_NUMERIC)
+				cairo_translate(m_pCairo, -((Numeric *)pObj)->GetValue() / 1000.0, 0.0);
 		}
 	}
 	else if (strcmp(cstr, "TL") == 0)
@@ -429,13 +429,13 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	{
 		cairo_translate(m_pCairo, 0.0, -m_dTextLead);
 		cairo_move_to(m_pCairo, 0.0, 0.0);
-		RenderText((CString *)pParams[0]);
+		RenderText((String *)pParams[0]);
 	}
 	else if (strcmp(cstr, "\"") == 0)
 	{
 		cairo_translate(m_pCairo, 0.0, -m_dTextLead);
 		cairo_move_to(m_pCairo, 0.0, 0.0);
-		RenderText((CString *)pParams[2]);
+		RenderText((String *)pParams[2]);
 	}
 	else
 	{
@@ -443,37 +443,37 @@ void CCairoRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nPara
 	}
 }
 
-void CCairoRenderer::RenderString(const char *str)
+void CairoRenderer::RenderString(const char *str)
 {
 	cairo_show_text(m_pCairo, str);
 }
 
-void CCairoRenderer::ConvertNumeric(CObject **pParams, int nParams, double *v)
+void CairoRenderer::ConvertNumeric(Object **pParams, int nParams, double *v)
 {
 	int i;
 
 	for (i = 0; i < nParams; i++)
-		if (pParams[i]->GetType() == CObject::OBJ_NUMERIC)
-			v[i] = ((CNumeric *)pParams[i])->GetValue();
+		if (pParams[i]->GetType() == Object::OBJ_NUMERIC)
+			v[i] = ((Numeric *)pParams[i])->GetValue();
 }
 
-void CCairoRenderer::SetGraphicsState(const char *pName)
+void CairoRenderer::SetGraphicsState(const char *pName)
 {
-	CDictionary *pGState;
+	Dictionary *pGState;
 	int i, n;
-	CObject *pObj;
+	Object *pObj;
 	double v;
 
-	pGState = (CDictionary *)GetResource(EXTGSTATE, pName);
+	pGState = (Dictionary *)GetResource(EXTGSTATE, pName);
 	n = pGState->GetSize();
 	for (i = 0; i < n; i++)
 	{
 		pName = pGState->GetName(i);
 		pObj = pGState->GetValue(pName);
-		if (pObj->GetType() == CObject::OBJ_NUMERIC)
-			v = ((CNumeric *)pObj)->GetValue();
+		if (pObj->GetType() == Object::OBJ_NUMERIC)
+			v = ((Numeric *)pObj)->GetValue();
 		if (strcmp(pName, "Type") == 0)
-			assert(strcmp(((CString *)pObj)->GetValue(), "ExtGState") == 0);
+			assert(strcmp(((String *)pObj)->GetValue(), "ExtGState") == 0);
 		else if (strcmp(pName, "LW") == 0)
 			cairo_set_line_width(m_pCairo, v + 0.5);
 		else if (strcmp(pName, "LC") == 0)
@@ -483,9 +483,9 @@ void CCairoRenderer::SetGraphicsState(const char *pName)
 		else if (strcmp(pName, "ML") == 0)
 			cairo_set_miter_limit(m_pCairo, v);
 		else if (strcmp(pName, "D") == 0)
-			SetDash(((CArray *)pObj)->GetValue(0), ((CArray *)pObj)->GetValue(1));
+			SetDash(((Array *)pObj)->GetValue(0), ((Array *)pObj)->GetValue(1));
 		else if (strcmp(pName, "RI") == 0)
-			SetIntent(((CName *)pObj)->GetValue());
+			SetIntent(((Name *)pObj)->GetValue());
 		else
 		{
 			//not implemented
@@ -496,22 +496,22 @@ void CCairoRenderer::SetGraphicsState(const char *pName)
 	}
 }
 
-void CCairoRenderer::SetDash(CObject *pArray, CObject *pPhase)
+void CairoRenderer::SetDash(Object *pArray, Object *pPhase)
 {
-	CArray *array;
+	Array *array;
 	int i, n;
 	double *dash;
 
-	array = (CArray *)pArray;
+	array = (Array *)pArray;
 	n = array->GetSize();
 	dash = new double[n];
 	for (i = 0; i < n; i++)
-		dash[i] = ((CNumeric *)array->GetValue(i))->GetValue();
-	cairo_set_dash(m_pCairo, dash, n, ((CNumeric *)pPhase)->GetValue());
+		dash[i] = ((Numeric *)array->GetValue(i))->GetValue();
+	cairo_set_dash(m_pCairo, dash, n, ((Numeric *)pPhase)->GetValue());
 	delete[] dash;
 }
 
-void CCairoRenderer::SetIntent(const char *pName)
+void CairoRenderer::SetIntent(const char *pName)
 {
 	//not implemented
 #ifdef DEBUG_OPERATOR
@@ -519,7 +519,7 @@ void CCairoRenderer::SetIntent(const char *pName)
 #endif
 }
 
-void CCairoRenderer::Stroke(void)
+void CairoRenderer::Stroke(void)
 {
 	double r, g, b, a;
 
@@ -529,11 +529,11 @@ void CCairoRenderer::Stroke(void)
 	cairo_set_source_rgba(m_pCairo, r, g, b, 1.0);
 }
 
-cairo_surface_t *CCairoRenderer::CreateImageSurface(CStream *pStream, int nWidth, int nHeight)
+cairo_surface_t *CairoRenderer::CreateImageSurface(Stream *pStream, int nWidth, int nHeight)
 {
 	cairo_surface_t *pSurface;
 	unsigned char *ptr, pixel[3];
-	IInputStream *pSource;
+	InputStream *pSource;
 	int i;
 
 	pSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, nWidth, nHeight);
@@ -554,7 +554,7 @@ cairo_surface_t *CCairoRenderer::CreateImageSurface(CStream *pStream, int nWidth
 	return pSurface;
 }
  
-void CCairoRenderer::SetFontFace(IInputStream *pStream)
+void CairoRenderer::SetFontFace(InputStream *pStream)
 {
 	FT_Open_Args args;
 	FT_Stream stream;

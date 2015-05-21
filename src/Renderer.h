@@ -3,17 +3,17 @@
 
 #include <map>
 
-class CCMap;
-class CDictionary;
-class CFontData;
-class IInputStream;
-class CObject;
-class COperator;
-class CPDF;
-class CStream;
-class CString;
+class CMap;
+class Dictionary;
+class FontData;
+class InputStream;
+class Object;
+class Operator;
+class PDF;
+class Stream;
+class String;
 
-class CRenderer
+class Renderer
 {
 public:
 	typedef enum
@@ -23,29 +23,29 @@ public:
 		EXTGSTATE,
 		XOBJECT,
 		RES_NUM
-	} Resource_t;
-	CRenderer(CPDF *pPDF);
-	virtual ~CRenderer();
+	} ResourceType;
+	Renderer(PDF *pPDF);
+	virtual ~Renderer();
 	virtual void Render(int nPage);
 	void Stop(void);
 
 protected:
-	CPDF *m_pPDF;
+	PDF *m_pPDF;
 	int m_nPage;
-	CDictionary *m_pResourceRoot;
+	Dictionary *m_pResourceRoot;
 
-	CObject *GetResource(Resource_t nRes, const char *pName);
-	virtual void RenderPage(CDictionary *pPage, double dWidth, double dHeight);
-	virtual void RenderContents(CStream *pContents);
-	virtual void RenderOperator(COperator *pOp, CObject **pParams, int nParams);
-	IInputStream *ChangeFont(const char *pName);
-	void RenderText(CString *pString);
+	Object *GetResource(ResourceType nRes, const char *pName);
+	virtual void RenderPage(Dictionary *pPage, double dWidth, double dHeight);
+	virtual void RenderContents(Stream *pContents);
+	virtual void RenderOperator(Operator *pOp, Object **pParams, int nParams);
+	InputStream *ChangeFont(const char *pName);
+	void RenderText(String *pString);
 	virtual void RenderString(const char *str);
 
 private:
-	CDictionary *m_pResources[RES_NUM];
-	std::map<CObject *, CFontData *> m_fontDataMap;
-	CFontData *m_pFontData;
+	Dictionary *m_pResources[RES_NUM];
+	std::map<Object *, FontData *> m_fontDataMap;
+	FontData *m_pFontData;
 	bool m_bStop;
 };
 

@@ -3,11 +3,11 @@
 
 #include "CompoundInputStream.h"
 
-class CFileInputStream : public CCompoundInputStream
+class FileInputStream : public CompoundInputStream
 {
 public:
-	CFileInputStream(const char *pFile);
-	~CFileInputStream();
+	FileInputStream(const char *pFile);
+	~FileInputStream();
 
 private:
 	int m_fd;

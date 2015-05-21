@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-class CDataInputStream;
+class DataInputStream;
 
-class CObject
+class Object
 {
 public:
 	typedef enum
@@ -21,32 +21,32 @@ public:
 		OBJ_STREAM,
 		OBJ_REFERENCE,
 		OBJ_OPERATOR
-	} ObjType_t;
+	} ObjType;
 
-	CObject(ObjType_t nType);
-	virtual ~CObject();
-	ObjType_t GetType(void);
+	Object(ObjType nType);
+	virtual ~Object();
+	ObjType GetType(void);
 	void SetOffset(unsigned int nOffset);
 	unsigned int GetOffset(void);
 
 public:
-	static void Print(CObject *pObj);
+	static void Print(Object *pObj);
 
 private:
-	ObjType_t m_nType;
+	ObjType m_nType;
 	unsigned int m_nOffset;
 };
 
-class CNull : public CObject
+class Null : public Object
 {
 public:
-	CNull();
+	Null();
 };
 
-class CBoolean : public CObject
+class Boolean : public Object
 {
 public:
-	CBoolean();
+	Boolean();
 	void SetValue(bool bValue);
 	bool GetValue(void);
 
@@ -54,10 +54,10 @@ private:
 	bool m_bValue;
 };
 
-class CNumeric : public CObject
+class Numeric : public Object
 {
 public:
-	CNumeric();
+	Numeric();
 	void SetValue(double dValue);
 	double GetValue(void);
 
@@ -65,17 +65,17 @@ private:
 	double m_dValue;
 };
 
-class CString : public CObject
+class String : public Object
 {
 public:
 	typedef enum
 	{
 		LITERAL,
 		HEXADECIMAL
-	} StringFormat_t;
-	CString();
-	~CString();
-	void SetValue(const char *pValue, int nLength, StringFormat_t nFormat);
+	} StringFormatType;
+	String();
+	~String();
+	void SetValue(const char *pValue, int nLength, StringFormatType nFormat);
 	const char *GetValue(void);
 	int GetLength(void);
 
@@ -84,11 +84,11 @@ private:
 	int m_nLength;
 };
 
-class CName : public CObject
+class Name : public Object
 {
 public:
-	CName();
-	~CName();
+	Name();
+	~Name();
 	void SetValue(const char *pValue);
 	const char *GetValue(void);
 
@@ -96,70 +96,70 @@ private:
 	char *m_pValue;
 };
 
-class CArray : public CObject
+class Array : public Object
 {
 public:
-	CArray();
-	~CArray();
-	void Add(CObject *pValue);
+	Array();
+	~Array();
+	void Add(Object *pValue);
 	int GetSize(void);
-	CObject *GetValue(int nIndex);
+	Object *GetValue(int nIndex);
 
 private:
-	std::vector<CObject *> m_pValue;
+	std::vector<Object *> m_pValue;
 };
 
-class CDictionary : public CObject
+class Dictionary : public Object
 {
 public:
-	CDictionary();
-	~CDictionary();
-	void Add(CObject *pName, CObject *pValue);
+	Dictionary();
+	~Dictionary();
+	void Add(Object *pName, Object *pValue);
 	int GetSize(void);
 	const char *GetName(int nIndex);
-	CObject *GetValue(const char *pKey);
+	Object *GetValue(const char *pKey);
 
 private:
-	std::vector<CObject *> m_pName, m_pValue;
+	std::vector<Object *> m_pName, m_pValue;
 };
 
-class CStream : public CObject
+class Stream : public Object
 {
 public:
-	CStream(CDictionary *pDict);
-	~CStream();
-	CDictionary *GetDictionary();
+	Stream(Dictionary *pDict);
+	~Stream();
+	Dictionary *GetDictionary();
 	void SetValue(const unsigned char *pValue, int nSize);
 	const unsigned char *GetValue(void);
 	int GetSize(void);
 
 private:
-	CDictionary *m_pDict;
+	Dictionary *m_pDict;
 	unsigned char *m_pValue;
 	int m_nSize;
 };
 
-class CReference : public CObject
+class Reference : public Object
 {
 public:
-	CReference();
-	~CReference();
+	Reference();
+	~Reference();
 	void SetValue(int nObjNum, int nGeneration);
 	int GetObjNum(void);
 	int GetGeneration(void);
-	void SetObject(CObject *pObj);
-	CObject *GetObject(void);
+	void SetObject(Object *pObj);
+	Object *GetObject(void);
 
 private:
 	int m_nObjNum, m_nGeneration;
-	CObject *m_pObj;
+	Object *m_pObj;
 };
 
-class COperator : public CObject
+class Operator : public Object
 {
 public:
-	COperator();
-	~COperator();
+	Operator();
+	~Operator();
 	void SetValue(const char *pValue);
 	const char *GetValue(void);
 

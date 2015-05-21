@@ -13,12 +13,12 @@ static bool IsDelimiter(int c)
 	return c == '(' || c == ')' || c == '<' || c == '>' || c == '[' || c == ']' || c == '{' || c == '}' || c == '/' || c == '%';
 }
 
-CDataInputStream::CDataInputStream(IInputStream *pSource)
+DataInputStream::DataInputStream(InputStream *pSource)
 {
 	m_pSource = pSource;
 }
 
-int CDataInputStream::ReadStr(char *pBuffer, int nSize)
+int DataInputStream::ReadStr(char *pBuffer, int nSize)
 {
 	char *ptr;
 	int c, nRet;
@@ -58,7 +58,7 @@ int CDataInputStream::ReadStr(char *pBuffer, int nSize)
 	return nRet;
 }
 
-int CDataInputStream::ReadInt(void)
+int DataInputStream::ReadInt(void)
 {
 	char pBuffer[16], *ptr;
 	int c;
@@ -82,7 +82,7 @@ int CDataInputStream::ReadInt(void)
 	return atoi(pBuffer);
 }
 
-void CDataInputStream::Skip(void)
+void DataInputStream::Skip(void)
 {
 	int c;
 

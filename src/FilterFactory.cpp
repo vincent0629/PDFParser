@@ -8,27 +8,27 @@
 #include <string.h>
 #include <assert.h>
 
-static int GetParm(CObject *pDict, const char *pName, int nDefault)
+static int GetParm(Object *pDict, const char *pName, int nDefault)
 {
-	CObject *pObj;
+	Object *pObj;
 
-	pObj = pDict? ((CDictionary *)pDict)->GetValue(pName) : NULL;
-	return pObj == NULL? nDefault : ((CNumeric *)pObj)->GetValue();
+	pObj = pDict? ((Dictionary *)pDict)->GetValue(pName) : NULL;
+	return pObj == NULL? nDefault : ((Numeric *)pObj)->GetValue();
 }
 
-IInputStream *CFilterFactory::Create(const char *pName, CDictionary *pParms, IInputStream *pSource)
+InputStream *FilterFactory::Create(const char *pName, Dictionary *pParms, InputStream *pSource)
 {
 	int nPredictor, nColors, nBitsPerComponent, nColumns;
 
 	if (strcmp(pName, "ASCIIHexDecode") == 0 || strcmp(pName, "AHx") == 0)
-		pSource = new CASCIIHexDecodeFilter(pSource);
+		pSource = new ASCIIHexDecodeFilter(pSource);
 	else if (strcmp(pName, "ASCII85Decode") == 0 || strcmp(pName, "A85") == 0)
-		pSource = new CASCII85DecodeFilter(pSource);
+		pSource = new ASCII85DecodeFilter(pSource);
 	else if (strcmp(pName, "LZWDecode") == 0 || strcmp(pName, "LZW") == 0)
 		assert(false);
 	else if (strcmp(pName, "FlateDecode") == 0 || strcmp(pName, "Fl") == 0)
 	{
-		pSource = new CFlateDecodeFilter(pSource);
+		pSource = new FlateDecodeFilter(pSource);
 		nPredictor = GetParm(pParms, "Predictor", 1);
 		if (nPredictor != 1)
 		{
@@ -36,7 +36,7 @@ IInputStream *CFilterFactory::Create(const char *pName, CDictionary *pParms, IIn
 			nBitsPerComponent = GetParm(pParms, "BitsPerComponent", 8);
 			nColumns = GetParm(pParms, "Columns", 1);
 			assert(false);
-			pSource = new CPredictorFilter(pSource, nColors, nBitsPerComponent, nColumns);
+			pSource = new PredictorFilter(pSource, nColors, nBitsPerComponent, nColumns);
 		}
 	}
 	else if (strcmp(pName, "RunLengthDecode") == 0 || strcmp(pName, "RL") == 0)

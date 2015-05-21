@@ -3,10 +3,10 @@
 
 #include "InputStream.h"
 
-class CCompoundInputStream : public IInputStream
+class CompoundInputStream : public InputStream
 {
 public:
-	virtual ~CCompoundInputStream();
+	virtual ~CompoundInputStream();
 	virtual unsigned int Available(void);
 	virtual unsigned int Position(void);
 	virtual int Seek(int nOffset, int nFrom);
@@ -14,7 +14,7 @@ public:
 	virtual int Read(void *pBuffer, int nSize);
 
 protected:
-	IInputStream *m_pSource;
+	InputStream *m_pSource;
 };
 
 #endif

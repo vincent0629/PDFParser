@@ -3,13 +3,13 @@
 
 #include "Renderer.h"
 
-class CObjRenderer : public CRenderer
+class ObjRenderer : public Renderer
 {
 public:
-	CObjRenderer(CPDF *pPDF);
+	ObjRenderer(PDF *pPDF);
 
 protected:
-	void RenderOperator(COperator *pOp, CObject **pParams, int nParams);
+	void RenderOperator(Operator *pOp, Object **pParams, int nParams);
 	void RenderString(const char *str);
 
 private:

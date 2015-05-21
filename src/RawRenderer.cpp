@@ -3,13 +3,13 @@
 #include "PDF.h"
 #include <stdio.h>
 
-CRawRenderer::CRawRenderer(CPDF *pPDF) : CRenderer(pPDF)
+RawRenderer::RawRenderer(PDF *pPDF) : Renderer(pPDF)
 {
 }
 
-void CRawRenderer::RenderContents(CStream *pContents)
+void RawRenderer::RenderContents(Stream *pContents)
 {
-	IInputStream *pSource;
+	InputStream *pSource;
 	char str[256];
 	int n;
 

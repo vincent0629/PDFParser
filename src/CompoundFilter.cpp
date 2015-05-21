@@ -1,30 +1,30 @@
 #include "CompoundFilter.h"
 
-CCompoundFilter::CCompoundFilter(IInputStream *pSource) : CFilter(pSource)
+CompoundFilter::CompoundFilter(InputStream *pSource) : Filter(pSource)
 {
 }
 
-unsigned int CCompoundFilter::Available(void)
+unsigned int CompoundFilter::Available(void)
 {
 	return m_pStream->Available();
 }
 
-unsigned int CCompoundFilter::Position(void)
+unsigned int CompoundFilter::Position(void)
 {
 	return m_pStream->Position();
 }
 
-int CCompoundFilter::Seek(int nOffset, int nFrom)
+int CompoundFilter::Seek(int nOffset, int nFrom)
 {
 	return m_pStream->Seek(nOffset, nFrom);
 }
 
-int CCompoundFilter::Read(void)
+int CompoundFilter::Read(void)
 {
 	return m_pStream->Read();
 }
 
-int CCompoundFilter::Read(void *pBuffer, int nSize)
+int CompoundFilter::Read(void *pBuffer, int nSize)
 {
 	return m_pStream->Read(pBuffer, nSize);
 }

@@ -3,34 +3,34 @@
 #include <stdio.h>
 #include <string.h>
 
-CObjRenderer::CObjRenderer(CPDF *pPDF) : CRenderer(pPDF), m_beginText(false)
+ObjRenderer::ObjRenderer(PDF *pPDF) : Renderer(pPDF), m_beginText(false)
 {
 }
 
-void CObjRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nParams)
+void ObjRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 {
 	int i;
 
 	for (i = 0; i < nParams; i++)
 	{
-		if (m_beginText && pParams[i]->GetType() == CObject::OBJ_STRING)
-			RenderText((CString *)pParams[i]);
+		if (m_beginText && pParams[i]->GetType() == Object::OBJ_STRING)
+			RenderText((String *)pParams[i]);
 		else
-			CObject::Print(pParams[i]);
+			Object::Print(pParams[i]);
 		putchar(' ');
 	}
-	CObject::Print(pOp);
+	Object::Print(pOp);
 	putchar('\n');
 
 	if (strcmp(pOp->GetValue(), "Tf") == 0)
-		ChangeFont(((CName *)pParams[0])->GetValue());
+		ChangeFont(((Name *)pParams[0])->GetValue());
 	else if (strcmp(pOp->GetValue(), "BT") == 0)
 		m_beginText = true;
 	else if (strcmp(pOp->GetValue(), "ET") == 0)
 		m_beginText = false;
 }
 
-void CObjRenderer::RenderString(const char *str)
+void ObjRenderer::RenderString(const char *str)
 {
 	printf("\"%s\"", str);
 }

@@ -1,18 +1,18 @@
 #ifndef _CMAP_H_
 #define _CMAP_H_
 
-class CCMap
+class CMap
 {
 public:
-	CCMap();
-	~CCMap();
+	CMap();
+	~CMap();
 	void Set(unsigned int nFrom, unsigned int nTo);
 	unsigned int Get(unsigned int nCode);
-	void Concat(CCMap *pCMap);
+	void Concat(CMap *pCMap);
 
 private:
 	unsigned int m_pTable[0x10000];
-	CCMap *m_pSecond;
+	CMap *m_pSecond;
 };
 
 #endif

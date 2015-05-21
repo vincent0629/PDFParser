@@ -1,19 +1,19 @@
 #ifndef _XREF_H_
 #define _XREF_H_
 
-class IInputStream;
-struct _SSubSection;
+class InputStream;
+struct _SubSection;
 
-class CXref
+class Xref
 {
 public:
-	CXref();
-	~CXref();
-	void Read(IInputStream *pSource);
+	Xref();
+	~Xref();
+	void Read(InputStream *pSource);
 	unsigned int GetOffset(int nObjNum, int nGeneration);
 
 private:
-	_SSubSection *m_pHead;
+	_SubSection *m_pHead;
 };
 
 #endif

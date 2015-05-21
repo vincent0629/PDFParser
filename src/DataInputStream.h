@@ -3,10 +3,10 @@
 
 #include "CompoundInputStream.h"
 
-class CDataInputStream : public CCompoundInputStream
+class DataInputStream : public CompoundInputStream
 {
 public:
-	CDataInputStream(IInputStream *pSource);
+	DataInputStream(InputStream *pSource);
 	int ReadStr(char *pBuffer, int nSize);
 	int ReadInt(void);
 	void Skip(void);

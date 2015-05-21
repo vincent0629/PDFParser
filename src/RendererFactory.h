@@ -1,10 +1,10 @@
 #ifndef _RENDERERFACTORY_H_
 #define _RENDERERFACTORY_H_
 
-class CPDF;
-class CRenderer;
+class PDF;
+class Renderer;
 
-class CRendererFactory
+class RendererFactory
 {
 public:
 	typedef enum
@@ -13,9 +13,9 @@ public:
 		RAW,
 		TEXT,
 		CAIRO
-	} Renderer_t;
+	} RendererType;
 
-	static CRenderer *Create(Renderer_t nType, CPDF *pPDF);
+	static Renderer *Create(RendererType nType, PDF *pPDF);
 };
 
 #endif

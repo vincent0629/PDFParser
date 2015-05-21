@@ -3,11 +3,11 @@
 
 #include "CompoundFilter.h"
 
-class CASCIIHexDecodeFilter : public CCompoundFilter
+class ASCIIHexDecodeFilter : public CompoundFilter
 {
 public:
-	CASCIIHexDecodeFilter(IInputStream *pSource);
-	~CASCIIHexDecodeFilter();
+	ASCIIHexDecodeFilter(InputStream *pSource);
+	~ASCIIHexDecodeFilter();
 
 private:
 	unsigned char *m_pBuffer;

@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-CFileInputStream::CFileInputStream(const char *pFile)
+FileInputStream::FileInputStream(const char *pFile)
 {
 	struct stat data;
 
@@ -21,10 +21,10 @@ CFileInputStream::CFileInputStream(const char *pFile)
 		m_nSize = 0;
 		m_pData = NULL;
 	}
-	m_pSource = new CByteArrayInputStream(m_pData, m_nSize);
+	m_pSource = new ByteArrayInputStream(m_pData, m_nSize);
 }
 
-CFileInputStream::~CFileInputStream()
+FileInputStream::~FileInputStream()
 {
 	delete m_pSource;
 	if (m_fd != -1)

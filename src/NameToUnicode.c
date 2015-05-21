@@ -1,7 +1,7 @@
 #include "NameToUnicode.h"
 #include <stdio.h>
 
-SNameToUnicode nameToUnicode[] = {
+NameToUnicode nameToUnicode[] = {
   {0x0021, "!"},
   {0x0023, "#"},
   {0x0024, "$"},

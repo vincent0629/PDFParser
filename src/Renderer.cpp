@@ -15,32 +15,32 @@
 
 using namespace std;
 
-static CCMap *ReadCMap(IInputStream *pSource)
+static CMap *ReadCMap(InputStream *pSource)
 {
-	CCMap *pCMap;
-	CCMapReader *pReader;
+	CMap *pCMap;
+	CMapReader *pReader;
 
-	pCMap = new CCMap();
-	pReader = new CCMapReader(pCMap);
+	pCMap = new CMap();
+	pReader = new CMapReader(pCMap);
 	pReader->Read(pSource);
 	delete pReader;
 	return pCMap;
 }
 
-class CFontData
+class FontData
 {
 public:
 	bool m_bSimpleFont;
-	CCMap *m_pCMap;
+	CMap *m_pCMap;
 	const char **m_pCodeToName;
 	const char *m_pDifferences[256];
-	IInputStream *m_pFontFile;
+	InputStream *m_pFontFile;
 
-	CFontData();
-	~CFontData();
+	FontData();
+	~FontData();
 };
 
-CFontData::CFontData()
+FontData::FontData()
 	: m_bSimpleFont(true)
 	, m_pCMap(NULL)
 	, m_pCodeToName(standardEncoding)
@@ -49,38 +49,38 @@ CFontData::CFontData()
 	memset(m_pDifferences, 0, sizeof(m_pDifferences));
 }
 
-CFontData::~CFontData()
+FontData::~FontData()
 {
 	delete m_pCMap;
 	delete m_pFontFile;
 }
 
-CRenderer::CRenderer(CPDF *pPDF)
+Renderer::Renderer(PDF *pPDF)
 {
 	m_pPDF = pPDF;
 }
 
-CRenderer::~CRenderer()
+Renderer::~Renderer()
 {
 }
 
-void CRenderer::Render(int nPage)
+void Renderer::Render(int nPage)
 {
-	CDictionary *pPage;
-	CArray *pMediaBox;
+	Dictionary *pPage;
+	Array *pMediaBox;
 	double width, height;
-	map<CObject *, CFontData *>::iterator it;
+	map<Object *, FontData *>::iterator it;
 
 	pPage = m_pPDF->GetPage(nPage);
 	if (pPage == NULL)
 		return;
 
 	m_nPage = nPage;
-	m_pResourceRoot = (CDictionary *)m_pPDF->GetObject(pPage->GetValue("Resources"));
-	memset(m_pResources, 0, sizeof(CDictionary *) * RES_NUM);
+	m_pResourceRoot = (Dictionary *)m_pPDF->GetObject(pPage->GetValue("Resources"));
+	memset(m_pResources, 0, sizeof(Dictionary *) * RES_NUM);
 	m_bStop = false;
 
-	pMediaBox = (CArray *)pPage->GetValue("MediaBox");
+	pMediaBox = (Array *)pPage->GetValue("MediaBox");
 	if (!pMediaBox)
 	{
 		width = 600;
@@ -88,8 +88,8 @@ void CRenderer::Render(int nPage)
 	}
 	else
 	{
-		width = ((CNumeric *)pMediaBox->GetValue(2))->GetValue();
-		height = ((CNumeric *)pMediaBox->GetValue(3))->GetValue();
+		width = ((Numeric *)pMediaBox->GetValue(2))->GetValue();
+		height = ((Numeric *)pMediaBox->GetValue(3))->GetValue();
 	}
 
 	RenderPage(pPage, width, height);
@@ -100,57 +100,57 @@ void CRenderer::Render(int nPage)
 	delete pPage;
 }
 
-void CRenderer::Stop(void)
+void Renderer::Stop(void)
 {
 	m_bStop = true;
 }
 
-CObject *CRenderer::GetResource(Resource_t nRes, const char *pName)
+Object *Renderer::GetResource(ResourceType nRes, const char *pName)
 {
 	const char *pNames[] = {"ColorSpace", "Font", "ExtGState", "XObject"};
 
 	if (m_pResources[nRes] == NULL && m_pResourceRoot != NULL)
-		m_pResources[nRes] = (CDictionary *)m_pPDF->GetObject(m_pResourceRoot->GetValue(pNames[nRes]));
+		m_pResources[nRes] = (Dictionary *)m_pPDF->GetObject(m_pResourceRoot->GetValue(pNames[nRes]));
 	return m_pResources[nRes] == NULL? NULL : m_pPDF->GetObject(m_pResources[nRes]->GetValue(pName));
 }
 
-void CRenderer::RenderPage(CDictionary *pPage, double dWidth, double dHeight)
+void Renderer::RenderPage(Dictionary *pPage, double dWidth, double dHeight)
 {
-	CObject *pObj;
+	Object *pObj;
 	int i, n;
 
 	pObj = m_pPDF->GetObject(pPage->GetValue("Contents"));
-	if (pObj->GetType() == CObject::OBJ_STREAM)
-		RenderContents((CStream *)pObj);
-	else if (pObj->GetType() == CObject::OBJ_ARRAY)
+	if (pObj->GetType() == Object::OBJ_STREAM)
+		RenderContents((Stream *)pObj);
+	else if (pObj->GetType() == Object::OBJ_ARRAY)
 	{
-		n = ((CArray *)pObj)->GetSize();
+		n = ((Array *)pObj)->GetSize();
 		for (i = 0; i < n && !m_bStop; i++)
-			RenderContents((CStream *)m_pPDF->GetObject(((CArray *)pObj)->GetValue(i)));
+			RenderContents((Stream *)m_pPDF->GetObject(((Array *)pObj)->GetValue(i)));
 	}
 }
 
-void CRenderer::RenderContents(CStream *pContents)
+void Renderer::RenderContents(Stream *pContents)
 {
-	IInputStream *pSource;
-	CDataInputStream *pDIS;
-	CObjReader *pReader;
+	InputStream *pSource;
+	DataInputStream *pDIS;
+	ObjReader *pReader;
 	int nParams;
-	CObject *pObj;
-	CObject *pParams[10];
+	Object *pObj;
+	Object *pParams[10];
 
 	pSource = m_pPDF->CreateInputStream(pContents);
-	pDIS = new CDataInputStream(pSource);
-	pReader = new CObjReader(pDIS, m_pPDF->GetXref());
+	pDIS = new DataInputStream(pSource);
+	pReader = new ObjReader(pDIS, m_pPDF->GetXref());
 	nParams = 0;
 	while (!m_bStop && pDIS->Available() > 0)
 	{
 		pObj = pReader->ReadObj();
 		if (pObj == NULL)
 			break;
-		if (pObj->GetType() == CObject::OBJ_OPERATOR)
+		if (pObj->GetType() == Object::OBJ_OPERATOR)
 		{
-			RenderOperator((COperator *)pObj, pParams, nParams);
+			RenderOperator((Operator *)pObj, pParams, nParams);
 			delete pObj;
 			while (nParams > 0)
 				delete pParams[--nParams];
@@ -163,22 +163,22 @@ void CRenderer::RenderContents(CStream *pContents)
 	delete pSource;
 }
 
-void CRenderer::RenderOperator(COperator *pOp, CObject **pParams, int nParams)
+void Renderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 {
 }
 
-IInputStream *CRenderer::ChangeFont(const char *pName)
+InputStream *Renderer::ChangeFont(const char *pName)
 {
-	CDictionary *pFont;
-	map<CObject *, CFontData *>::iterator it;
+	Dictionary *pFont;
+	map<Object *, FontData *>::iterator it;
 	const char *cstr, *subpath;
-	CObject *pObj, *pEncoding, *pFontFile;
-	CArray *pDifferences;
-	IInputStream *pSource;
+	Object *pObj, *pEncoding, *pFontFile;
+	Array *pDifferences;
+	InputStream *pSource;
 	char file[128], name[16];
 	int i, n, index;
 
-	pFont = (CDictionary *)GetResource(FONT, pName);
+	pFont = (Dictionary *)GetResource(FONT, pName);
 	assert(pFont);
 
 	it = m_fontDataMap.find(pFont);
@@ -190,16 +190,16 @@ IInputStream *CRenderer::ChangeFont(const char *pName)
 	}
 	else
 	{
-		m_pFontData = new CFontData();
+		m_pFontData = new FontData();
 		m_fontDataMap.insert(make_pair(pFont, m_pFontData));
 
 		pObj = m_pPDF->GetObject(pFont->GetValue("Subtype"));
-		cstr = ((CName *)pObj)->GetValue();
+		cstr = ((Name *)pObj)->GetValue();
 		m_pFontData->m_bSimpleFont = strcmp(cstr, "Type1") == 0 || strcmp(cstr, "MMType1") == 0 || strcmp(cstr, "TrueType") == 0 || strcmp(cstr, "Type3") == 0;
 		pObj = m_pPDF->GetObject(pFont->GetValue("ToUnicode"));
 		if (pObj != NULL)
 		{
-			pSource = m_pPDF->CreateInputStream((CStream *)pObj);
+			pSource = m_pPDF->CreateInputStream((Stream *)pObj);
 			m_pFontData->m_pCMap = ReadCMap(pSource);
 			delete pSource;
 		}
@@ -209,24 +209,24 @@ IInputStream *CRenderer::ChangeFont(const char *pName)
 			if (pEncoding != NULL)
 				if (m_pFontData->m_bSimpleFont)
 				{
-					if (pEncoding->GetType() == CObject::OBJ_DICTIONARY)
+					if (pEncoding->GetType() == Object::OBJ_DICTIONARY)
 					{
-						pDifferences = (CArray *)m_pPDF->GetObject(((CDictionary *)pEncoding)->GetValue("Differences"));
+						pDifferences = (Array *)m_pPDF->GetObject(((Dictionary *)pEncoding)->GetValue("Differences"));
 						index = 0;
 						n = pDifferences->GetSize();
 						for (i = 0; i < n; i++)
 						{
 							pObj = pDifferences->GetValue(i);
-							if (pObj->GetType() == CObject::OBJ_NUMERIC)
-								index = ((CNumeric *)pObj)->GetValue();
+							if (pObj->GetType() == Object::OBJ_NUMERIC)
+								index = ((Numeric *)pObj)->GetValue();
 							else
-								m_pFontData->m_pDifferences[index++] = ((CName *)pObj)->GetValue();
+								m_pFontData->m_pDifferences[index++] = ((Name *)pObj)->GetValue();
 						}
-						pEncoding = m_pPDF->GetObject(((CDictionary *)pEncoding)->GetValue("BaseEncoding"));
+						pEncoding = m_pPDF->GetObject(((Dictionary *)pEncoding)->GetValue("BaseEncoding"));
 					}
 					if (pEncoding != NULL)
 					{
-						cstr = ((CName *)pEncoding)->GetValue();
+						cstr = ((Name *)pEncoding)->GetValue();
 						if (strcmp(cstr, "WinAnsiEncoding") == 0)
 							m_pFontData->m_pCodeToName = winAnsiEncoding;
 						else if (strcmp(cstr, "StandardEncoding") == 0)
@@ -239,19 +239,19 @@ IInputStream *CRenderer::ChangeFont(const char *pName)
 				}
 				else
 				{
-					cstr = ((CName *)pEncoding)->GetValue();
+					cstr = ((Name *)pEncoding)->GetValue();
 					pObj = m_pPDF->GetObject(pFont->GetValue("DescendantFonts"));
-					pObj = m_pPDF->GetObject(((CArray *)pObj)->GetValue(0));
-					pObj = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("CIDSystemInfo"));
-					strcpy(name, ((CString *)m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("Registry")))->GetValue());
+					pObj = m_pPDF->GetObject(((Array *)pObj)->GetValue(0));
+					pObj = m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("CIDSystemInfo"));
+					strcpy(name, ((String *)m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("Registry")))->GetValue());
 					strcat(name, "-");
-					strcat(name, ((CString *)m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("Ordering")))->GetValue());
+					strcat(name, ((String *)m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("Ordering")))->GetValue());
 					sprintf(file, "/usr/share/poppler/cMap/%s/%s", strncmp(cstr, "Identity", 8) == 0? "" : name, cstr);
-					pSource = new CFileInputStream(file);
+					pSource = new FileInputStream(file);
 					m_pFontData->m_pCMap = ReadCMap(pSource);
 					delete pSource;
 					sprintf(file, "/usr/share/poppler/cMap/%s/%s-UCS2", name, name);
-					pSource = new CFileInputStream(file);
+					pSource = new FileInputStream(file);
 					m_pFontData->m_pCMap->Concat(ReadCMap(pSource));
 					delete pSource;
 				}
@@ -263,35 +263,35 @@ IInputStream *CRenderer::ChangeFont(const char *pName)
 			pObj = m_pPDF->GetObject(pFont->GetValue("DescendantFonts"));
 			if (pObj != NULL)
 			{
-				pObj = m_pPDF->GetObject(((CArray *)pObj)->GetValue(0));
+				pObj = m_pPDF->GetObject(((Array *)pObj)->GetValue(0));
 				if (pObj != NULL)
-					pObj = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontDescriptor"));
+					pObj = m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("FontDescriptor"));
 			}
 		}
 
 		if (pObj != NULL)
 		{
-			pFontFile = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile"));
+			pFontFile = m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("FontFile"));
 			if (pFontFile == NULL)
-				pFontFile = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile2"));
+				pFontFile = m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("FontFile2"));
 			if (pFontFile == NULL)
-				pFontFile = m_pPDF->GetObject(((CDictionary *)pObj)->GetValue("FontFile3"));
+				pFontFile = m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("FontFile3"));
 			if (pFontFile != NULL)
-				m_pFontData->m_pFontFile = m_pPDF->CreateInputStream((CStream *)pFontFile);
+				m_pFontData->m_pFontFile = m_pPDF->CreateInputStream((Stream *)pFontFile);
 		}
 	}
 
 	return m_pFontData->m_pFontFile;
 }
 
-void CRenderer::RenderText(CString *pString)
+void Renderer::RenderText(String *pString)
 {
 	const char *cstr, *name;
 	const unsigned char *ustr;
 	wchar_t *wstr;
 	char *str;
 	int i, nLen;
-	SNameToUnicode *pNameToUnicode;
+	NameToUnicode *pNameToUnicode;
 
 	cstr = pString->GetValue();
 	nLen = pString->GetLength();
@@ -345,6 +345,6 @@ void CRenderer::RenderText(CString *pString)
 	delete[] wstr;
 }
 
-void CRenderer::RenderString(const char *str)
+void Renderer::RenderString(const char *str)
 {
 }
