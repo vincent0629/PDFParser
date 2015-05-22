@@ -7,8 +7,6 @@ struct _cairo;
 struct _cairo_matrix;
 struct _cairo_surface;
 struct _cairo_font_face;
-struct FT_LibraryRec_;
-struct FT_FaceRec_;
 
 class CairoRenderer : public Renderer
 {
@@ -18,7 +16,7 @@ public:
 protected:
 	void RenderPage(Dictionary *pPage, double dWidth, double dHeight);
 	void RenderOperator(Operator *pOp, Object **pParams, int nParams);
-	void RenderString(const char *str);
+	void RenderGlyphs(const uint16_t *glyphs, int num);
 
 private:
 	_cairo *m_pCairo;
@@ -27,7 +25,6 @@ private:
 	int m_nTextMode;
 	double m_dTextLead;
 	double m_dFontSize;
-	FT_LibraryRec_ *m_ft;
 	_cairo_font_face *m_cairo_face;
 
 	void ConvertNumeric(Object **pParams, int nParams, double *v);

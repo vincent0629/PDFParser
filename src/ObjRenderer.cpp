@@ -14,7 +14,7 @@ void ObjRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 	for (i = 0; i < nParams; i++)
 	{
 		if (m_beginText && pParams[i]->GetType() == Object::OBJ_STRING)
-			RenderText((String *)pParams[i]);
+			RenderString((String *)pParams[i]);
 		else
 			Object::Print(pParams[i]);
 		putchar(' ');
@@ -30,7 +30,12 @@ void ObjRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 		m_beginText = false;
 }
 
-void ObjRenderer::RenderString(const char *str)
+void ObjRenderer::RenderCharCodes(const uint16_t *codes, int num)
 {
-	printf("\"%s\"", str);
+	int i;
+
+	if (num > 0)
+		printf("%d", codes[0]);
+	for (i = 1; i < num; ++i)
+		printf(" %d", codes[i]);
 }

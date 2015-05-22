@@ -10,7 +10,7 @@ public:
 
 protected:
 	void RenderOperator(Operator *pOp, Object **pParams, int nParams);
-	void RenderString(const char *str);
+	void RenderCharCodes(const uint16_t *codes, int num);
 };
 
 #endif

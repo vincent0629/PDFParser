@@ -27,22 +27,10 @@ static CMap *ReadCMap(InputStream *pSource)
 	return pCMap;
 }
 
-class FontData
-{
-public:
-	bool m_bSimpleFont;
-	CMap *m_pCMap;
-	const char **m_pCodeToName;
-	const char *m_pDifferences[256];
-	InputStream *m_pFontFile;
-
-	FontData();
-	~FontData();
-};
-
 FontData::FontData()
 	: m_bSimpleFont(true)
 	, m_pCMap(NULL)
+	, m_pToUnicode(NULL)
 	, m_pCodeToName(standardEncoding)
 	, m_pFontFile(NULL)
 {
@@ -52,6 +40,7 @@ FontData::FontData()
 FontData::~FontData()
 {
 	delete m_pCMap;
+	delete m_pToUnicode;
 	delete m_pFontFile;
 }
 
@@ -167,7 +156,7 @@ void Renderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 {
 }
 
-InputStream *Renderer::ChangeFont(const char *pName)
+void Renderer::ChangeFont(const char *pName)
 {
 	Dictionary *pFont;
 	map<Object *, FontData *>::iterator it;
@@ -196,66 +185,6 @@ InputStream *Renderer::ChangeFont(const char *pName)
 		pObj = m_pPDF->GetObject(pFont->GetValue("Subtype"));
 		cstr = ((Name *)pObj)->GetValue();
 		m_pFontData->m_bSimpleFont = strcmp(cstr, "Type1") == 0 || strcmp(cstr, "MMType1") == 0 || strcmp(cstr, "TrueType") == 0 || strcmp(cstr, "Type3") == 0;
-		pObj = m_pPDF->GetObject(pFont->GetValue("ToUnicode"));
-		if (pObj != NULL)
-		{
-			pSource = m_pPDF->CreateInputStream((Stream *)pObj);
-			m_pFontData->m_pCMap = ReadCMap(pSource);
-			delete pSource;
-		}
-		else
-		{
-			pEncoding = m_pPDF->GetObject(pFont->GetValue("Encoding"));
-			if (pEncoding != NULL)
-				if (m_pFontData->m_bSimpleFont)
-				{
-					if (pEncoding->GetType() == Object::OBJ_DICTIONARY)
-					{
-						pDifferences = (Array *)m_pPDF->GetObject(((Dictionary *)pEncoding)->GetValue("Differences"));
-						index = 0;
-						n = pDifferences->GetSize();
-						for (i = 0; i < n; i++)
-						{
-							pObj = pDifferences->GetValue(i);
-							if (pObj->GetType() == Object::OBJ_NUMERIC)
-								index = ((Numeric *)pObj)->GetValue();
-							else
-								m_pFontData->m_pDifferences[index++] = ((Name *)pObj)->GetValue();
-						}
-						pEncoding = m_pPDF->GetObject(((Dictionary *)pEncoding)->GetValue("BaseEncoding"));
-					}
-					if (pEncoding != NULL)
-					{
-						cstr = ((Name *)pEncoding)->GetValue();
-						if (strcmp(cstr, "WinAnsiEncoding") == 0)
-							m_pFontData->m_pCodeToName = winAnsiEncoding;
-						else if (strcmp(cstr, "StandardEncoding") == 0)
-							m_pFontData->m_pCodeToName = standardEncoding;
-						else if (strcmp(cstr, "MacRomanEncoding") == 0)
-							m_pFontData->m_pCodeToName = macRomanEncoding;
-						else if (strcmp(cstr, "MacExpertEncoding") == 0)
-							m_pFontData->m_pCodeToName = macExpertEncoding;
-					}
-				}
-				else
-				{
-					cstr = ((Name *)pEncoding)->GetValue();
-					pObj = m_pPDF->GetObject(pFont->GetValue("DescendantFonts"));
-					pObj = m_pPDF->GetObject(((Array *)pObj)->GetValue(0));
-					pObj = m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("CIDSystemInfo"));
-					strcpy(name, ((String *)m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("Registry")))->GetValue());
-					strcat(name, "-");
-					strcat(name, ((String *)m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("Ordering")))->GetValue());
-					sprintf(file, "/usr/share/poppler/cMap/%s/%s", strncmp(cstr, "Identity", 8) == 0? "" : name, cstr);
-					pSource = new FileInputStream(file);
-					m_pFontData->m_pCMap = ReadCMap(pSource);
-					delete pSource;
-					sprintf(file, "/usr/share/poppler/cMap/%s/%s-UCS2", name, name);
-					pSource = new FileInputStream(file);
-					m_pFontData->m_pCMap->Concat(ReadCMap(pSource));
-					delete pSource;
-				}
-		}
 
 		pObj = m_pPDF->GetObject(pFont->GetValue("FontDescriptor"));
 		if (pObj == NULL)
@@ -269,7 +198,7 @@ InputStream *Renderer::ChangeFont(const char *pName)
 			}
 		}
 
-		if (pObj != NULL)
+		if (pObj != NULL)  // FontDescriptor
 		{
 			pFontFile = m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("FontFile"));
 			if (pFontFile == NULL)
@@ -279,72 +208,126 @@ InputStream *Renderer::ChangeFont(const char *pName)
 			if (pFontFile != NULL)
 				m_pFontData->m_pFontFile = m_pPDF->CreateInputStream((Stream *)pFontFile);
 		}
-	}
 
-	return m_pFontData->m_pFontFile;
+		pEncoding = m_pPDF->GetObject(pFont->GetValue("Encoding"));
+		if (pEncoding != NULL)
+			if (m_pFontData->m_bSimpleFont)
+			{
+				if (pEncoding->GetType() == Object::OBJ_DICTIONARY)
+				{
+					pDifferences = (Array *)m_pPDF->GetObject(((Dictionary *)pEncoding)->GetValue("Differences"));
+					index = 0;
+					n = pDifferences->GetSize();
+					for (i = 0; i < n; i++)
+					{
+						pObj = pDifferences->GetValue(i);
+						if (pObj->GetType() == Object::OBJ_NUMERIC)
+							index = ((Numeric *)pObj)->GetValue();
+						else
+							m_pFontData->m_pDifferences[index++] = ((Name *)pObj)->GetValue();
+					}
+					pEncoding = m_pPDF->GetObject(((Dictionary *)pEncoding)->GetValue("BaseEncoding"));
+				}
+				if (pEncoding != NULL)
+				{
+					cstr = ((Name *)pEncoding)->GetValue();
+					if (strcmp(cstr, "WinAnsiEncoding") == 0)
+						m_pFontData->m_pCodeToName = winAnsiEncoding;
+					else if (strcmp(cstr, "StandardEncoding") == 0)
+						m_pFontData->m_pCodeToName = standardEncoding;
+					else if (strcmp(cstr, "MacRomanEncoding") == 0)
+						m_pFontData->m_pCodeToName = macRomanEncoding;
+					else if (strcmp(cstr, "MacExpertEncoding") == 0)
+						m_pFontData->m_pCodeToName = macExpertEncoding;
+				}
+			}
+			else
+			{
+				cstr = ((Name *)pEncoding)->GetValue();
+				pObj = m_pPDF->GetObject(pFont->GetValue("DescendantFonts"));
+				pObj = m_pPDF->GetObject(((Array *)pObj)->GetValue(0));
+				pObj = m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("CIDSystemInfo"));
+				strcpy(name, ((String *)m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("Registry")))->GetValue());
+				strcat(name, "-");
+				strcat(name, ((String *)m_pPDF->GetObject(((Dictionary *)pObj)->GetValue("Ordering")))->GetValue());
+				sprintf(file, "/usr/share/poppler/cMap/%s/%s", strncmp(cstr, "Identity", 8) == 0? "" : name, cstr);
+				pSource = new FileInputStream(file);
+				m_pFontData->m_pCMap = ReadCMap(pSource);
+				delete pSource;
+				sprintf(file, "/usr/share/poppler/cMap/%s/%s-UCS2", name, name);
+				pSource = new FileInputStream(file);
+				m_pFontData->m_pCMap->Concat(ReadCMap(pSource));
+				delete pSource;
+			}
+
+		pObj = m_pPDF->GetObject(pFont->GetValue("ToUnicode"));
+		if (pObj != NULL)
+		{
+			pSource = m_pPDF->CreateInputStream((Stream *)pObj);
+			m_pFontData->m_pToUnicode = ReadCMap(pSource);
+			delete pSource;
+		}
+	}
 }
 
-void Renderer::RenderText(String *pString)
+void Renderer::RenderString(String *pString)
 {
-	const char *cstr, *name;
 	const unsigned char *ustr;
-	wchar_t *wstr;
-	char *str;
 	int i, nLen;
+	uint16_t *codes;
+
+	ustr = (const unsigned char *)pString->GetValue();
+	nLen = pString->GetLength();
+	if (!m_pFontData->m_bSimpleFont)
+		nLen /= 2;
+	codes = new uint16_t[nLen];
+	if (m_pFontData->m_bSimpleFont)
+		for (i = 0; i < nLen; ++i)
+			codes[i] = ustr[i];
+	else
+		for (i = 0; i < nLen; ++i)
+			codes[i] = (ustr[i * 2] << 8) | ustr[i * 2 + 1];
+	RenderCharCodes(codes, nLen);
+	delete[] codes;
+}
+
+void Renderer::RenderCharCodes(const uint16_t *codes, int num)
+{
+	int i;
+	uint16_t *glyphs;
+	const char *name;
 	NameToUnicode *pNameToUnicode;
 
-	cstr = pString->GetValue();
-	nLen = pString->GetLength();
-	ustr = (const unsigned char *)cstr;
-	wstr = new wchar_t[nLen + 1];
-	i = 0;
+	glyphs = new uint16_t[num];
 	if (m_pFontData->m_pCMap != NULL)
 	{
-		if (m_pFontData->m_bSimpleFont)
-			while (ustr < (const unsigned char *)cstr + nLen)
-			{
-				wstr[i] = m_pFontData->m_pCMap->Get(*ustr++);
-				if (wstr[i] == 0x00A0)  //WORKAROUND: nbsp?
-					wstr[i] = ' ';
-				++i;
-			}
-		else
-			while (ustr < (const unsigned char *)cstr + nLen)
-			{
-				wstr[i] = m_pFontData->m_pCMap->Get((*ustr << 8) | *(ustr + 1));
-				if (wstr[i] == 0x00A0)  //WORKAROUND: nbsp?
-					wstr[i] = ' ';
-				++i;
-				ustr += 2;
-			}
+		for (i = 0; i < num; ++i)
+			glyphs[i] = m_pFontData->m_pCMap->Get(codes[i]);
 	}
 	else
-		while (ustr < (const unsigned char *)cstr + nLen)
+	{
+		for (i = 0; i < num; ++i)
 		{
-			name = m_pFontData->m_pDifferences[*ustr];
+			name = m_pFontData->m_pDifferences[codes[i]];
 			if (name == NULL)
-				name = m_pFontData->m_pCodeToName[*ustr];
-			++ustr;
+				name = m_pFontData->m_pCodeToName[codes[i]];
 			if (name != NULL)
+			{
 				for (pNameToUnicode = nameToUnicode; pNameToUnicode->name != NULL; ++pNameToUnicode)
 					if (strcmp(name, pNameToUnicode->name) == 0)
 					{
-						wstr[i++] = pNameToUnicode->unicode;
+						glyphs[i] = pNameToUnicode->unicode;
 						break;
 					}
+			}
+			else
+				assert(false);
 		}
-	if (i > 0)
-	{
-		wstr[i] = L'\0';
-		str = new char[i * 6 + 1];
-		str[0] = '\0';
-		wcstombs(str, wstr, i * 6 + 1);
-		RenderString(str);
-		delete[] str;
 	}
-	delete[] wstr;
+	RenderGlyphs(glyphs, num);
+	delete[] glyphs;
 }
 
-void Renderer::RenderString(const char *str)
+void Renderer::RenderGlyphs(const uint16_t *glyphs, int num)
 {
 }

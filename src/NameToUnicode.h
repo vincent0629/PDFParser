@@ -13,7 +13,9 @@ typedef struct _NameToUnicode
 extern "C"
 {
 #endif
+
 extern NameToUnicode nameToUnicode[];
+
 #ifdef __cplusplus
 };
 #endif

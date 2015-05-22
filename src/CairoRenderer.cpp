@@ -2,13 +2,11 @@
 #include "InputStream.h"
 #include "Object.h"
 #include "PDF.h"
+#include "FreeType.h"
 #include <stdio.h>
 #include <string.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-ft.h>
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_MODULE_H
 #include <assert.h>
 
 //#define DEBUG_OPERATOR
@@ -31,20 +29,6 @@ static void PrintNotImplementedOperator(Operator *pOp, Object **pParams, int nPa
 	printf("\n");
 }
 #endif
-
-static unsigned long Stream_ReadFunc(FT_Stream stream, unsigned long offset, unsigned char*  buffer, unsigned long count)
-{
-	InputStream *pSource;
-
-	pSource = (InputStream *)stream->descriptor.pointer;
-	pSource->Seek(offset, SEEK_SET);
-	return pSource->Read(buffer, count);
-}
-
-static void Stream_CloseFunc(FT_Stream stream)
-{
-	delete stream;
-}
 
 CairoRenderer::CairoRenderer(PDF *pPDF) : Renderer(pPDF)
 {
@@ -70,16 +54,12 @@ void CairoRenderer::RenderPage(Dictionary *pPage, double dWidth, double dHeight)
 	m_dTextLead = 0.0;
 	m_pFontMatrix = new cairo_matrix_t;
 
-	FT_Init_FreeType(&m_ft);
-
 	cairo_translate(m_pCairo, 0, dHeight);
 	cairo_scale(m_pCairo, 1.0, -1.0);
 
 	Renderer::RenderPage(pPage, dWidth, dHeight);
 	sprintf(str, "%d.png", m_nPage);
 	cairo_surface_write_to_png(pSurface, str);
-
-	FT_Done_FreeType(m_ft);
 
 	delete m_pFontMatrix;
 	cairo_destroy(m_pCairo);
@@ -356,14 +336,15 @@ void CairoRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 	}
 	else if (strcmp(cstr, "Tf") == 0)
 	{
-		SetFontFace(ChangeFont(((Name *)pParams[0])->GetValue()));
+		ChangeFont(((Name *)pParams[0])->GetValue());
+		SetFontFace(m_pFontData->m_pFontFile);
 
 		ConvertNumeric(pParams + 1, nParams - 1, v);
 		cairo_matrix_init_scale(m_pFontMatrix, v[0], -v[0]);
 		cairo_set_font_matrix(m_pCairo, m_pFontMatrix);
 	}
 	else if (strcmp(cstr, "Tj") == 0)
-		RenderText((String *)pParams[0]);
+		RenderString((String *)pParams[0]);
 	else if (strcmp(cstr, "TJ") == 0)
 	{
 		n = ((Array *)pParams[0])->GetSize();
@@ -371,7 +352,7 @@ void CairoRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 		{
 			pObj = ((Array *)pParams[0])->GetValue(i);
 			if (pObj->GetType() == Object::OBJ_STRING)
-				RenderText((String *)pObj);
+				RenderString((String *)pObj);
 			else if (pObj->GetType() == Object::OBJ_NUMERIC)
 				cairo_translate(m_pCairo, -((Numeric *)pObj)->GetValue() / 1000.0, 0.0);
 		}
@@ -429,13 +410,13 @@ void CairoRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 	{
 		cairo_translate(m_pCairo, 0.0, -m_dTextLead);
 		cairo_move_to(m_pCairo, 0.0, 0.0);
-		RenderText((String *)pParams[0]);
+		RenderString((String *)pParams[0]);
 	}
 	else if (strcmp(cstr, "\"") == 0)
 	{
 		cairo_translate(m_pCairo, 0.0, -m_dTextLead);
 		cairo_move_to(m_pCairo, 0.0, 0.0);
-		RenderText((String *)pParams[2]);
+		RenderString((String *)pParams[2]);
 	}
 	else
 	{
@@ -443,9 +424,20 @@ void CairoRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 	}
 }
 
-void CairoRenderer::RenderString(const char *str)
+void CairoRenderer::RenderGlyphs(const uint16_t *glyphs, int num)
 {
-	cairo_show_text(m_pCairo, str);
+	cairo_glyph_t *cg;
+	int i;
+
+	cg = new cairo_glyph_t[num];
+	for (i = 0; i < num; ++i)
+	{
+		cg[i].index = glyphs[i];
+		cg[i].x = 0;
+		cg[i].y = 0;
+	}
+	cairo_show_glyphs(m_pCairo, cg, num);
+	delete[] cg;
 }
 
 void CairoRenderer::ConvertNumeric(Object **pParams, int nParams, double *v)
@@ -556,9 +548,7 @@ cairo_surface_t *CairoRenderer::CreateImageSurface(Stream *pStream, int nWidth, 
  
 void CairoRenderer::SetFontFace(InputStream *pStream)
 {
-	FT_Open_Args args;
-	FT_Stream stream;
-	FT_Face ft_face;
+	FT_Face face;
 	static cairo_user_data_key_t key;
 
 	if (m_cairo_face)
@@ -570,18 +560,11 @@ void CairoRenderer::SetFontFace(InputStream *pStream)
 
 	if (pStream)
 	{
-		stream = new FT_StreamRec;  // stream will be deleted in Stream_CloseFunc
-		memset(stream, 0, sizeof(FT_StreamRec));
-		stream->size = pStream->Available();
-		stream->descriptor.pointer = pStream;
-		stream->read = Stream_ReadFunc;
-		stream->close = Stream_CloseFunc;
-		args.flags = FT_OPEN_STREAM;
-		args.stream = stream;
-		if (FT_Open_Face(m_ft, &args, 0, &ft_face) == 0)  //m_face will be destroyed by FT_Done_Face
+		face = FreeType::OpenFace(pStream);  // face will be destroyed by FT_Done_Face
+		if (face)
 		{
-			m_cairo_face = cairo_ft_font_face_create_for_ft_face(ft_face, 0);
-			cairo_font_face_set_user_data(m_cairo_face, &key, ft_face, (cairo_destroy_func_t)FT_Done_Face);
+			m_cairo_face = cairo_ft_font_face_create_for_ft_face(face, 0);
+			cairo_font_face_set_user_data(m_cairo_face, &key, face, (cairo_destroy_func_t)FT_Done_Face);
 		}
 	}
 	else
