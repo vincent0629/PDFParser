@@ -19,6 +19,12 @@ static int HtoD(char c)
 	return 0;
 }
 
+Object::Object()
+{
+	m_nType = OBJ_INVALID;
+	m_nOffset = -1;
+}
+
 Object::Object(ObjType nType)
 {
 	m_nType = nType;

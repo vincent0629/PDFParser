@@ -144,7 +144,7 @@ void Renderer::RenderContents(Stream *pContents)
 			while (nParams > 0)
 				delete pParams[--nParams];
 		}
-		else
+		else if (pObj->GetType() != Object::OBJ_INVALID)
 			pParams[nParams++] = pObj;
 	}
 	delete pReader;

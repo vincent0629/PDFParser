@@ -11,6 +11,7 @@ class Object
 public:
 	typedef enum
 	{
+		OBJ_INVALID,
 		OBJ_NULL,
 		OBJ_BOOLEAN,
 		OBJ_NUMERIC,
@@ -23,6 +24,7 @@ public:
 		OBJ_OPERATOR
 	} ObjType;
 
+	Object();
 	Object(ObjType nType);
 	virtual ~Object();
 	ObjType GetType(void);
