@@ -30,21 +30,17 @@ int DataInputStream::ReadStr(char *pBuffer, int nSize)
 	while (true)
 	{
 		c = m_pSource->Read();
-		if (IsSpace(c))
-		{
-			if (!bBackSlash)
-				break;
-		}
+		if (bBackSlash)
+			bBackSlash = false;
+		else if (IsSpace(c))
+			break;
 		else if (IsDelimiter(c))
 		{
-			if (!bBackSlash)
-			{
-				m_pSource->Seek(-1, SEEK_CUR);
-				break;
-			}
+			m_pSource->Seek(-1, SEEK_CUR);
+			break;
 		}
 		else if (c == '\\')
-			bBackSlash = !bBackSlash;
+			bBackSlash = true;
 		else if (c == EOF)
 			break;
 		if (ptr < pBuffer + nSize - 1)

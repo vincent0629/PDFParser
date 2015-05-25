@@ -29,7 +29,7 @@ PDF::PDF(InputStream *pSource)
 
 	strcpy(m_pVersion, (const char *)str + 5);
 
-	m_pSource->Seek(-30, SEEK_END);
+	m_pSource->Seek(-1024, SEEK_END);
 	while (true)
 	{
 		c = m_pSource->Read();
