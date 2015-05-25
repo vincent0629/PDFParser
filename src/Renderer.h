@@ -33,6 +33,8 @@ protected:
 	int m_nPage;
 	const Dictionary *m_pResourceRoot;
 	FontData *m_pFontData;
+	const Object *m_pParams[10];
+	int m_nParams;
 
 	const Object *GetResource(ResourceType nRes, const char *pName);
 	virtual void RenderPage(const Dictionary *pPage, double dWidth, double dHeight);

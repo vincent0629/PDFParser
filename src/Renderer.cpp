@@ -74,6 +74,7 @@ void Renderer::RenderPage(const Dictionary *pPage, double dWidth, double dHeight
 	const Object *pObj;
 	int i, n;
 
+	m_nParams = 0;
 	pObj = m_pPDF->GetObject(pPage->GetValue("Contents"));
 	if (pObj->GetType() == Object::OBJ_STREAM)
 		RenderContents((const Stream *)pObj);
@@ -90,14 +91,11 @@ void Renderer::RenderContents(const Stream *pContents)
 	InputStream *pSource;
 	DataInputStream *pDIS;
 	ObjReader *pReader;
-	int nParams;
 	const Object *pObj;
-	const Object *pParams[10];
 
 	pSource = m_pPDF->CreateInputStream(pContents);
 	pDIS = new DataInputStream(pSource);
 	pReader = new ObjReader(pDIS, m_pPDF->GetXref());
-	nParams = 0;
 	while (!m_bStop && pDIS->Available() > 0)
 	{
 		pObj = pReader->ReadObj();
@@ -105,13 +103,13 @@ void Renderer::RenderContents(const Stream *pContents)
 			break;
 		if (pObj->GetType() == Object::OBJ_OPERATOR)
 		{
-			RenderOperator((const Operator *)pObj, pParams, nParams);
+			RenderOperator((const Operator *)pObj, m_pParams, m_nParams);
+			while (m_nParams > 0)
+				delete m_pParams[--m_nParams];
 			delete pObj;
-			while (nParams > 0)
-				delete pParams[--nParams];
 		}
 		else if (pObj->GetType() != Object::OBJ_INVALID)
-			pParams[nParams++] = pObj;
+			m_pParams[m_nParams++] = pObj;
 	}
 	delete pReader;
 	delete pDIS;
