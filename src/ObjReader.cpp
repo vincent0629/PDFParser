@@ -148,6 +148,8 @@ Object *ObjReader::ReadObj(void)
 				}
 				else if (strcmp(str, "null") == 0)
 					pObj = new Null();
+				else if (*str == ' ')  // is this normal?
+					pObj = new Object();  // invalid object
 				else
 				{
 					pObj = new Operator();
