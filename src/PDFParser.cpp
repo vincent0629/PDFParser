@@ -16,8 +16,8 @@ static void Run(const char *pFile, RendererFactory::RendererType nType)
 	Renderer *pRenderer;
 	char str[64], *token[5];
 	int n;
-	Trailer *pTrailer;
-	Object *pObj;
+	const Trailer *pTrailer;
+	const Object *pObj;
 	InputStream *pIS;
 
 	pSource = new FileInputStream(pFile);
@@ -69,7 +69,7 @@ static void Run(const char *pFile, RendererFactory::RendererType nType)
 					printf("\n");
 					if (pObj->GetType() == Object::OBJ_STREAM && n >= 3)
 					{
-						pIS = pPDF->CreateInputStream((Stream *)pObj);
+						pIS = pPDF->CreateInputStream((const Stream *)pObj);
 						printf("----- begin %d bytes -----\n", pIS->Available());
 						while ((n = pIS->Read(str, sizeof(str) - 1)) > 0)
 						{
@@ -105,7 +105,7 @@ static void Run(const char *pFile, RendererFactory::RendererType nType)
 					if (pObj == NULL)
 						break;
 					if (pObj->GetType() == Object::OBJ_STREAM)
-						printf("Stream #%d size=%d\n", n, ((Stream *)pObj)->GetSize());
+						printf("Stream #%d size=%d\n", n, ((const Stream *)pObj)->GetSize());
 					delete pObj;
 					++n;
 				}
@@ -128,6 +128,7 @@ int main(int argc, char *argv[])
 		return 0;
 
 	setlocale(LC_CTYPE, "");
+
 	nType = RendererFactory::TEXT;
 	for (i = 1; i < argc; i++)
 	{
@@ -149,6 +150,8 @@ int main(int argc, char *argv[])
 		else
 			pFile = argv[i];
 	}
+
 	Run(pFile, nType);
+
 	return 0;
 }

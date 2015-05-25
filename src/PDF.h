@@ -12,8 +12,8 @@ class Xref;
 
 typedef struct _Trailer
 {
-	Stream *pStream;
-	Dictionary *pDict;
+	const Stream *pStream;
+	const Dictionary *pDict;
 	_Trailer *pPrev;
 } Trailer;
 
@@ -23,13 +23,13 @@ public:
 	PDF(InputStream *pSource);
 	~PDF();
 	const char *GetVersion(void);
-	Xref *GetXref(void);
-	Trailer *GetTrailer(void);
-	Object *GetObject(int nNum);
-	Object *GetObject(Object *pObj);
-	InputStream *CreateInputStream(Stream *pStream);
+	const Xref *GetXref(void);
+	const Trailer *GetTrailer(void);
+	const Object *GetObject(int nNum);
+	const Object *GetObject(const Object *pObj);
+	InputStream *CreateInputStream(const Stream *pStream);
 	int GetPageNum(void);
-	Dictionary *GetPage(int nIndex);
+	const Dictionary *GetPage(int nIndex);
 
 private:
 	DataInputStream *m_pSource;
@@ -38,10 +38,10 @@ private:
 	ObjReader *m_pReader;
 	Trailer *m_pTrailer, *m_pTail;
 	int m_nPageNum;
-	Dictionary *m_pPages;
+	const Dictionary *m_pPages;
 
-	Dictionary *GetPage(Dictionary *pParent, int nIndex);
-	InputStream *CreateFilter(Name *pName, InputStream *pSource);
+	const Dictionary *GetPage(const Dictionary *pParent, int nIndex);
+	InputStream *CreateFilter(const Name *pName, InputStream *pSource);
 };
 
 #endif

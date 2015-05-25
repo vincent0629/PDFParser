@@ -8,15 +8,15 @@
 #include <string.h>
 #include <assert.h>
 
-static int GetParm(Object *pDict, const char *pName, int nDefault)
+static int GetParm(const Object *pDict, const char *pName, int nDefault)
 {
-	Object *pObj;
+	const Object *pObj;
 
-	pObj = pDict? ((Dictionary *)pDict)->GetValue(pName) : NULL;
-	return pObj == NULL? nDefault : ((Numeric *)pObj)->GetValue();
+	pObj = pDict? ((const Dictionary *)pDict)->GetValue(pName) : NULL;
+	return pObj == NULL? nDefault : ((const Numeric *)pObj)->GetValue();
 }
 
-InputStream *FilterFactory::Create(const char *pName, Dictionary *pParms, InputStream *pSource)
+InputStream *FilterFactory::Create(const char *pName, const Dictionary *pParms, InputStream *pSource)
 {
 	int nPredictor, nColors, nBitsPerComponent, nColumns;
 

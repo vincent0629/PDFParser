@@ -1,6 +1,7 @@
 #include "TextRenderer.h"
-#include "Object.h"
 #include "CMap.h"
+#include "FontData.h"
+#include "Object.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -9,55 +10,55 @@ TextRenderer::TextRenderer(PDF *pPDF) : Renderer(pPDF)
 {
 }
 
-void TextRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
+void TextRenderer::RenderOperator(const Operator *pOp, const Object **pParams, int nParams)
 {
 	const char *cstr;
 	int i, n, index;
-	Object *pObj;
+	const Object *pObj;
 
-	cstr = ((Operator *)pOp)->GetValue();
+	cstr = ((const Operator *)pOp)->GetValue();
 	if (strcmp(cstr, "Tf") == 0)
-		ChangeFont(((Name *)pParams[0])->GetValue());
+		ChangeFont(((const Name *)pParams[0])->GetValue());
 	else if (strcmp(cstr, "TD") == 0 || strcmp(cstr, "T*") == 0)
 		putchar('\n');
 	else if (strcmp(cstr, "Tj") == 0)
-		RenderString((String *)pParams[0]);
+		RenderString((const String *)pParams[0]);
 	else if (strcmp(cstr, "'") == 0)
 	{
 		putchar('\n');
-		RenderString((String *)pParams[0]);
+		RenderString((const String *)pParams[0]);
 	}
 	else if (strcmp(cstr, "\"") == 0)
 	{
 		putchar('\n');
-		RenderString((String *)pParams[2]);
+		RenderString((const String *)pParams[2]);
 	}
 	else if (strcmp(cstr, "TJ") == 0)
 	{
-		n = ((Array *)pParams[0])->GetSize();
+		n = ((const Array *)pParams[0])->GetSize();
 		for (i = 0; i < n; i++)
 		{
-			pObj = ((Array *)pParams[0])->GetValue(i);
+			pObj = ((const Array *)pParams[0])->GetValue(i);
 			if (pObj->GetType() == Object::OBJ_STRING)
-				RenderString((String *)pObj);
+				RenderString((const String *)pObj);
 		}
 	}
 }
 
-void TextRenderer::RenderCharCodes(const uint16_t *codes, int num)
+void TextRenderer::RenderString(const String *pString)
 {
-	int i;
+	int n;
 	wchar_t *wstr;
 	char *str;
 
-	wstr = new wchar_t[num + 1];
-	for (i = 0; i < num; ++i)
-		wstr[i] = m_pFontData->m_pToUnicode? m_pFontData->m_pToUnicode->Get(codes[i]) : codes[i];
-	wstr[i] = '\0';
+	n = pString->GetLength();
+	wstr = new wchar_t[n + 1];
+	n = m_pFontData->CharCodesToUnicodes(pString->GetValue(), n, wstr);
 
-	str = new char[num * 6 + 1];
-	wcstombs(str, wstr, num * 6 + 1);
-	delete[] wstr;
-
+	str = new char[n * 6 + 1];
+	wcstombs(str, wstr, n * 6 + 1);
 	printf("%s\n", str);
+	delete[] str;
+
+	delete[] wstr;
 }

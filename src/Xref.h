@@ -10,7 +10,7 @@ public:
 	Xref();
 	~Xref();
 	void Read(InputStream *pSource);
-	unsigned int GetOffset(int nObjNum, int nGeneration);
+	unsigned int GetOffset(int nObjNum, int nGeneration) const;
 
 private:
 	_SubSection *m_pHead;

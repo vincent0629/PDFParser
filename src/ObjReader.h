@@ -8,13 +8,13 @@ class Xref;
 class ObjReader
 {
 public:
-	ObjReader(DataInputStream *pSource, Xref *pXref);
-	Object *ReadObj(void);
-	Object *ReadIndirectObj(int nObjNum, int nGeneration);
+	ObjReader(DataInputStream *pSource, const Xref *pXref);
+	const Object *ReadObj(void);
+	const Object *ReadIndirectObj(int nObjNum, int nGeneration);
 
 private:
 	DataInputStream *m_pSource;
-	Xref *m_pXref;
+	const Xref *m_pXref;
 };
 
 #endif

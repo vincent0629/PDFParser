@@ -7,7 +7,7 @@ RawRenderer::RawRenderer(PDF *pPDF) : Renderer(pPDF)
 {
 }
 
-void RawRenderer::RenderContents(Stream *pContents)
+void RawRenderer::RenderContents(const Stream *pContents)
 {
 	InputStream *pSource;
 	char str[256];

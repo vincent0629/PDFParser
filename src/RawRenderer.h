@@ -9,7 +9,7 @@ public:
 	RawRenderer(PDF *pPDF);
 
 protected:
-	void RenderContents(Stream *pContents);
+	void RenderContents(const Stream *pContents);
 };
 
 #endif

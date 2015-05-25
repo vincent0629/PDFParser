@@ -17,7 +17,7 @@ void CMap::Set(unsigned int nFrom, unsigned int nTo)
 	m_pTable[nFrom] = nTo;
 }
 
-unsigned int CMap::Get(unsigned int nCode)
+unsigned int CMap::Get(unsigned int nCode) const
 {
 	if (m_pTable[nCode] != 0)
 		nCode = m_pTable[nCode];
@@ -26,7 +26,7 @@ unsigned int CMap::Get(unsigned int nCode)
 	return nCode;
 }
 
-void CMap::Concat(CMap *pCMap)
+void CMap::Concat(const CMap *pCMap)
 {
 	m_pSecond = pCMap;
 }

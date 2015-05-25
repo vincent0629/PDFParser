@@ -35,7 +35,7 @@ Object::~Object()
 {
 }
 
-Object::ObjType Object::GetType(void)
+Object::ObjType Object::GetType(void) const
 {
 	return m_nType;
 }
@@ -45,12 +45,12 @@ void Object::SetOffset(unsigned int nOffset)
 	m_nOffset = nOffset;
 }
 
-unsigned int Object::GetOffset(void)
+unsigned int Object::GetOffset(void) const
 {
 	return m_nOffset;
 }
 
-void Object::Print(Object *pObj)
+void Object::Print(const Object *pObj)
 {
 	double d;
 	int i, n;
@@ -62,53 +62,53 @@ void Object::Print(Object *pObj)
 			printf("null");
 			break;
 		case Object::OBJ_BOOLEAN:
-			printf("%s", ((Boolean *)pObj)->GetValue()? "true" : "false");
+			printf("%s", ((const Boolean *)pObj)->GetValue()? "true" : "false");
 			break;
 		case Object::OBJ_NUMERIC:
-			d = ((Numeric *)pObj)->GetValue();
+			d = ((const Numeric *)pObj)->GetValue();
 			if (d == (int)d)
 				printf("%d", (int)d);
 			else
 				printf("%lf", d);
 			break;
 		case Object::OBJ_STRING:
-			printf("\"%s\"", ((String *)pObj)->GetValue());
+			printf("\"%s\"", ((const String *)pObj)->GetValue());
 			break;
 		case Object::OBJ_NAME:
-			printf("/%s", ((Name *)pObj)->GetValue());
+			printf("/%s", ((const Name *)pObj)->GetValue());
 			break;
 		case Object::OBJ_ARRAY:
 			printf("[");
-			n = ((Array *)pObj)->GetSize();
+			n = ((const Array *)pObj)->GetSize();
 			for (i = 0; i < n; i++)
 			{
 				if (i > 0)
 					printf(" ");
-				Print(((Array *)pObj)->GetValue(i));
+				Print(((const Array *)pObj)->GetValue(i));
 			}
 			printf("]");
 			break;
 		case Object::OBJ_DICTIONARY:
 			printf("<\n");
-			n = ((Dictionary *)pObj)->GetSize();
+			n = ((const Dictionary *)pObj)->GetSize();
 			for (i = 0; i < n; i++)
 			{
-				pName = ((Dictionary *)pObj)->GetName(i);
+				pName = ((const Dictionary *)pObj)->GetName(i);
 				printf(" %s: ", pName);
-				Print(((Dictionary *)pObj)->GetValue(pName));
+				Print(((const Dictionary *)pObj)->GetValue(pName));
 				printf("\n");
 			}
 			printf(">");
 			break;
 		case Object::OBJ_STREAM:
-			Print(((Stream *)pObj)->GetDictionary());
-			printf("\nstream size=%d", ((Stream *)pObj)->GetSize());
+			Print(((const Stream *)pObj)->GetDictionary());
+			printf("\nstream size=%d", ((const Stream *)pObj)->GetSize());
 			break;
 		case Object::OBJ_REFERENCE:
-			printf("%d %d R", ((Reference *)pObj)->GetObjNum(), ((Reference *)pObj)->GetGeneration());
+			printf("%d %d R", ((const Reference *)pObj)->GetObjNum(), ((const Reference *)pObj)->GetGeneration());
 			break;
 		case Object::OBJ_OPERATOR:
-			printf("%s", ((Operator *)pObj)->GetValue());
+			printf("%s", ((const Operator *)pObj)->GetValue());
 			break;
 		default:
 			assert(false);
@@ -130,7 +130,7 @@ void Boolean::SetValue(bool bValue)
 	m_bValue = bValue;
 }
 
-bool Boolean::GetValue(void)
+bool Boolean::GetValue(void) const
 {
 	return m_bValue;
 }
@@ -145,7 +145,7 @@ void Numeric::SetValue(double dValue)
 	m_dValue = dValue;
 }
 
-double Numeric::GetValue(void)
+double Numeric::GetValue(void) const
 {
 	return m_dValue;
 }
@@ -270,12 +270,12 @@ void String::SetValue(const char *pValue, int nLength, StringFormatType nFormat)
 	}
 }
 
-const char *String::GetValue(void)
+const char *String::GetValue(void) const
 {
 	return m_pValue;
 }
 
-int String::GetLength(void)
+int String::GetLength(void) const
 {
 	return m_nLength;
 }
@@ -309,7 +309,7 @@ void Name::SetValue(const char *pValue)
 	*ptr = '\0';
 }
 
-const char *Name::GetValue(void)
+const char *Name::GetValue(void) const
 {
 	return m_pValue;
 }
@@ -320,15 +320,15 @@ Array::Array() : Object(OBJ_ARRAY)
 
 Array::~Array()
 {
-	vector<Object *>::iterator it;
+	vector<const Object *>::iterator it;
 
 	for (it = m_pValue.begin(); it != m_pValue.end(); ++it)
 		delete *it;
 }
 
-void Array::Add(Object *pValue)
+void Array::Add(const Object *pValue)
 {
-	Object *pObj[2];
+	const Object *pObj[2];
 
 	if (pValue->GetType() == OBJ_REFERENCE)
 	{
@@ -337,19 +337,19 @@ void Array::Add(Object *pValue)
 		pObj[0] = m_pValue.back();
 		m_pValue.pop_back();
 		assert(pObj[0]->GetType() == OBJ_NUMERIC || pObj[1]->GetType() == OBJ_NUMERIC);
-		((Reference *)pValue)->SetValue(((Numeric *)pObj[0])->GetValue(), ((Numeric *)pObj[1])->GetValue());
+		((Reference *)pValue)->SetValue(((const Numeric *)pObj[0])->GetValue(), ((const Numeric *)pObj[1])->GetValue());
 		delete pObj[0];
 		delete pObj[1];
 	}
 	m_pValue.push_back(pValue);
 }
 
-int Array::GetSize(void)
+int Array::GetSize(void) const
 {
 	return m_pValue.size();
 }
 
-Object *Array::GetValue(int nIndex)
+const Object *Array::GetValue(int nIndex) const
 {
 	return m_pValue.at(nIndex);
 }
@@ -360,7 +360,7 @@ Dictionary::Dictionary() : Object(OBJ_DICTIONARY)
 
 Dictionary::~Dictionary()
 {
-	vector<Object *>::iterator it;
+	vector<const Object *>::iterator it;
 
 	for (it = m_pName.begin(); it != m_pName.end(); ++it)
 		delete *it;
@@ -368,9 +368,9 @@ Dictionary::~Dictionary()
 		delete *it;
 }
 
-void Dictionary::Add(Object *pName, Object *pValue)
+void Dictionary::Add(const Object *pName, const Object *pValue)
 {
-	Object *pObj;
+	const Object *pObj;
 
 	if (pName->GetType() == OBJ_NAME)
 	{
@@ -384,38 +384,38 @@ void Dictionary::Add(Object *pName, Object *pValue)
 		pObj = m_pValue.back();
 		m_pValue.pop_back();
 		assert(pObj->GetType() == OBJ_NUMERIC);
-		((Reference *)pValue)->SetValue(((Numeric *)pObj)->GetValue(), ((Numeric *)pName)->GetValue());
+		((Reference *)pValue)->SetValue(((const Numeric *)pObj)->GetValue(), ((const Numeric *)pName)->GetValue());
 		m_pValue.push_back(pValue);
 		delete pObj;
 		delete pName;
 	}
 }
 
-int Dictionary::GetSize(void)
+int Dictionary::GetSize(void) const
 {
 	return m_pName.size();
 }
 
-const char *Dictionary::GetName(int nIndex)
+const char *Dictionary::GetName(int nIndex) const
 {
-	return ((Name *)m_pName.at(nIndex))->GetValue();
+	return ((const Name *)m_pName.at(nIndex))->GetValue();
 }
 
-Object *Dictionary::GetValue(const char *pKey)
+const Object *Dictionary::GetValue(const char *pKey) const
 {
 	int i;
-	vector<Object *>::iterator it;
+	vector<const Object *>::const_iterator it;
 
 	i = 0;
 	for (it = m_pName.begin(); it != m_pName.end(); ++it)
-		if (strcmp(((Name *)*it)->GetValue(), pKey) == 0)
+		if (strcmp(((const Name *)*it)->GetValue(), pKey) == 0)
 			break;
 		else
 			++i;
 	return i < m_pValue.size()? m_pValue.at(i) : NULL;
 }
 
-Stream::Stream(Dictionary *pDict) : Object(OBJ_STREAM)
+Stream::Stream(const Dictionary *pDict) : Object(OBJ_STREAM)
 {
 	m_pDict = pDict;
 	m_pValue = NULL;
@@ -428,7 +428,7 @@ Stream::~Stream()
 	delete[] m_pValue;
 }
 
-Dictionary *Stream::GetDictionary()
+const Dictionary *Stream::GetDictionary() const
 {
 	return m_pDict;
 }
@@ -440,12 +440,12 @@ void Stream::SetValue(const unsigned char *pValue, int nSize)
 	m_nSize = nSize;
 }
 
-const unsigned char *Stream::GetValue(void)
+const unsigned char *Stream::GetValue(void) const
 {
 	return m_pValue;
 }
 
-int Stream::GetSize(void)
+int Stream::GetSize(void) const
 {
 	return m_nSize;
 }
@@ -468,22 +468,22 @@ void Reference::SetValue(int nObjNum, int nGeneration)
 	m_nGeneration = nGeneration;
 }
 
-int Reference::GetObjNum(void)
+int Reference::GetObjNum(void) const
 {
 	return m_nObjNum;
 }
 
-int Reference::GetGeneration(void)
+int Reference::GetGeneration(void) const
 {
 	return m_nGeneration;
 }
 
-void Reference::SetObject(Object *pObj)
+void Reference::SetObject(const Object *pObj)
 {
 	m_pObj = pObj;
 }
 
-Object *Reference::GetObject(void)
+const Object *Reference::GetObject(void) const
 {
 	return m_pObj;
 }
@@ -504,7 +504,7 @@ void Operator::SetValue(const char *pValue)
 	strcpy(m_pValue, pValue);
 }
 
-const char *Operator::GetValue(void)
+const char *Operator::GetValue(void) const
 {
 	return m_pValue;
 }

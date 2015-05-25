@@ -9,8 +9,8 @@ public:
 	TextRenderer(PDF *pPDF);
 
 protected:
-	void RenderOperator(Operator *pOp, Object **pParams, int nParams);
-	void RenderCharCodes(const uint16_t *codes, int num);
+	void RenderOperator(const Operator *pOp, const Object **pParams, int nParams);
+	void RenderString(const String *pString);
 };
 
 #endif

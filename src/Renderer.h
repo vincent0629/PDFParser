@@ -1,31 +1,15 @@
 #ifndef _RENDERER_H_
 #define _RENDERER_H_
 
-#include <stdint.h>
 #include <map>
 
-class CMap;
 class Dictionary;
 class FontData;
-class InputStream;
 class Object;
 class Operator;
 class PDF;
 class Stream;
 class String;
-
-class FontData
-{
-public:
-	bool m_bSimpleFont;
-	CMap *m_pCMap, *m_pToUnicode;
-	const char **m_pCodeToName;
-	const char *m_pDifferences[256];
-	InputStream *m_pFontFile;
-
-	FontData();
-	~FontData();
-};
 
 class Renderer
 {
@@ -38,6 +22,7 @@ public:
 		XOBJECT,
 		RES_NUM
 	} ResourceType;
+
 	Renderer(PDF *pPDF);
 	virtual ~Renderer();
 	virtual void Render(int nPage);
@@ -46,21 +31,19 @@ public:
 protected:
 	PDF *m_pPDF;
 	int m_nPage;
-	Dictionary *m_pResourceRoot;
+	const Dictionary *m_pResourceRoot;
 	FontData *m_pFontData;
 
-	Object *GetResource(ResourceType nRes, const char *pName);
-	virtual void RenderPage(Dictionary *pPage, double dWidth, double dHeight);
-	virtual void RenderContents(Stream *pContents);
-	virtual void RenderOperator(Operator *pOp, Object **pParams, int nParams);
+	const Object *GetResource(ResourceType nRes, const char *pName);
+	virtual void RenderPage(const Dictionary *pPage, double dWidth, double dHeight);
+	virtual void RenderContents(const Stream *pContents);
+	virtual void RenderOperator(const Operator *pOp, const Object **pParams, int nParams);
 	void ChangeFont(const char *pName);
-	void RenderString(String *pString);
-	virtual void RenderCharCodes(const uint16_t *codes, int num);
-	virtual void RenderGlyphs(const uint16_t *glyphs, int num);
+	virtual void RenderString(const String *pString);
 
 private:
-	Dictionary *m_pResources[RES_NUM];
-	std::map<Object *, FontData *> m_fontDataMap;
+	const Dictionary *m_pResources[RES_NUM];
+	std::map<const Object *, FontData *> m_fontDataMap;
 	bool m_bStop;
 };
 

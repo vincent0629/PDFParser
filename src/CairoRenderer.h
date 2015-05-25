@@ -3,6 +3,8 @@
 
 #include "Renderer.h"
 
+class InputStream;
+
 struct _cairo;
 struct _cairo_matrix;
 struct _cairo_surface;
@@ -14,9 +16,9 @@ public:
 	CairoRenderer(PDF *pPDF);
 
 protected:
-	void RenderPage(Dictionary *pPage, double dWidth, double dHeight);
-	void RenderOperator(Operator *pOp, Object **pParams, int nParams);
-	void RenderGlyphs(const uint16_t *glyphs, int num);
+	void RenderPage(const Dictionary *pPage, double dWidth, double dHeight);
+	void RenderOperator(const Operator *pOp, const Object **pParams, int nParams);
+	void RenderString(const String *pString);
 
 private:
 	_cairo *m_pCairo;
@@ -27,12 +29,12 @@ private:
 	double m_dFontSize;
 	_cairo_font_face *m_cairo_face;
 
-	void ConvertNumeric(Object **pParams, int nParams, double *v);
+	void ConvertNumeric(const Object **pParams, int nParams, double *v);
 	void SetGraphicsState(const char *pName);
-	void SetDash(Object *pArray, Object *pPhase);
+	void SetDash(const Object *pArray, const Object *pPhase);
 	void SetIntent(const char *pName);
 	void Stroke(void);
-	_cairo_surface *CreateImageSurface(Stream *pStream, int nWidth, int nHeight);
+	_cairo_surface *CreateImageSurface(const Stream *pStream, int nWidth, int nHeight);
 	void SetFontFace(InputStream *pStream);
 };
 

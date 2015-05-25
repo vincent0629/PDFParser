@@ -27,12 +27,12 @@ public:
 	Object();
 	Object(ObjType nType);
 	virtual ~Object();
-	ObjType GetType(void);
+	ObjType GetType(void) const;
 	void SetOffset(unsigned int nOffset);
-	unsigned int GetOffset(void);
+	unsigned int GetOffset(void) const;
 
 public:
-	static void Print(Object *pObj);
+	static void Print(const Object *pObj);
 
 private:
 	ObjType m_nType;
@@ -50,7 +50,7 @@ class Boolean : public Object
 public:
 	Boolean();
 	void SetValue(bool bValue);
-	bool GetValue(void);
+	bool GetValue(void) const;
 
 private:
 	bool m_bValue;
@@ -61,7 +61,7 @@ class Numeric : public Object
 public:
 	Numeric();
 	void SetValue(double dValue);
-	double GetValue(void);
+	double GetValue(void) const;
 
 private:
 	double m_dValue;
@@ -78,8 +78,8 @@ public:
 	String();
 	~String();
 	void SetValue(const char *pValue, int nLength, StringFormatType nFormat);
-	const char *GetValue(void);
-	int GetLength(void);
+	const char *GetValue(void) const;
+	int GetLength(void) const;
 
 private:
 	char *m_pValue;
@@ -92,7 +92,7 @@ public:
 	Name();
 	~Name();
 	void SetValue(const char *pValue);
-	const char *GetValue(void);
+	const char *GetValue(void) const;
 
 private:
 	char *m_pValue;
@@ -103,12 +103,12 @@ class Array : public Object
 public:
 	Array();
 	~Array();
-	void Add(Object *pValue);
-	int GetSize(void);
-	Object *GetValue(int nIndex);
+	void Add(const Object *pValue);
+	int GetSize(void) const;
+	const Object *GetValue(int nIndex) const;
 
 private:
-	std::vector<Object *> m_pValue;
+	std::vector<const Object *> m_pValue;
 };
 
 class Dictionary : public Object
@@ -116,27 +116,27 @@ class Dictionary : public Object
 public:
 	Dictionary();
 	~Dictionary();
-	void Add(Object *pName, Object *pValue);
-	int GetSize(void);
-	const char *GetName(int nIndex);
-	Object *GetValue(const char *pKey);
+	void Add(const Object *pName, const Object *pValue);
+	int GetSize(void) const;
+	const char *GetName(int nIndex) const;
+	const Object *GetValue(const char *pKey) const;
 
 private:
-	std::vector<Object *> m_pName, m_pValue;
+	std::vector<const Object *> m_pName, m_pValue;
 };
 
 class Stream : public Object
 {
 public:
-	Stream(Dictionary *pDict);
+	Stream(const Dictionary *pDict);
 	~Stream();
-	Dictionary *GetDictionary();
+	const Dictionary *GetDictionary() const;
 	void SetValue(const unsigned char *pValue, int nSize);
-	const unsigned char *GetValue(void);
-	int GetSize(void);
+	const unsigned char *GetValue(void) const;
+	int GetSize(void) const;
 
 private:
-	Dictionary *m_pDict;
+	const Dictionary *m_pDict;
 	unsigned char *m_pValue;
 	int m_nSize;
 };
@@ -147,14 +147,14 @@ public:
 	Reference();
 	~Reference();
 	void SetValue(int nObjNum, int nGeneration);
-	int GetObjNum(void);
-	int GetGeneration(void);
-	void SetObject(Object *pObj);
-	Object *GetObject(void);
+	int GetObjNum(void) const;
+	int GetGeneration(void) const;
+	void SetObject(const Object *pObj);
+	const Object *GetObject(void) const;
 
 private:
 	int m_nObjNum, m_nGeneration;
-	Object *m_pObj;
+	const Object *m_pObj;
 };
 
 class Operator : public Object
@@ -163,7 +163,7 @@ public:
 	Operator();
 	~Operator();
 	void SetValue(const char *pValue);
-	const char *GetValue(void);
+	const char *GetValue(void) const;
 
 private:
 	char *m_pValue;

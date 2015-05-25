@@ -7,7 +7,7 @@ ObjRenderer::ObjRenderer(PDF *pPDF) : Renderer(pPDF), m_beginText(false)
 {
 }
 
-void ObjRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
+void ObjRenderer::RenderOperator(const Operator *pOp, const Object **pParams, int nParams)
 {
 	int i;
 	const char *cstr;
@@ -15,7 +15,7 @@ void ObjRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 	for (i = 0; i < nParams; i++)
 	{
 		if (m_beginText && pParams[i]->GetType() == Object::OBJ_STRING)
-			RenderString((String *)pParams[i]);
+			RenderString((const String *)pParams[i]);
 		else
 			Object::Print(pParams[i]);
 		putchar(' ');
@@ -25,19 +25,22 @@ void ObjRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 
 	cstr = pOp->GetValue();
 	if (strcmp(cstr, "Tf") == 0)
-		ChangeFont(((Name *)pParams[0])->GetValue());
+		ChangeFont(((const Name *)pParams[0])->GetValue());
 	else if (strcmp(cstr, "BT") == 0)
 		m_beginText = true;
 	else if (strcmp(cstr, "ET") == 0)
 		m_beginText = false;
 }
 
-void ObjRenderer::RenderCharCodes(const uint16_t *codes, int num)
+void ObjRenderer::RenderString(const String *pString)
 {
-	int i;
+	const unsigned char *codes;
+	int i, n;
 
-	if (num > 0)
+	codes = (const unsigned char *)pString->GetValue();
+	n = pString->GetLength();
+	if (n > 0)
 		printf("%d", codes[0]);
-	for (i = 1; i < num; ++i)
+	for (i = 1; i < n; ++i)
 		printf(" %d", codes[i]);
 }

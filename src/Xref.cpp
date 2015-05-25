@@ -74,7 +74,7 @@ void Xref::Read(InputStream *pSource)
 	} while (c != 't' && c != EOF);  //trailer
 }
 
-unsigned int Xref::GetOffset(int nObjNum, int nGeneration)
+unsigned int Xref::GetOffset(int nObjNum, int nGeneration) const
 {
 	SubSection *pSec;
 

@@ -7,7 +7,7 @@ class InputStream;
 class FilterFactory
 {
 public:
-	static InputStream *Create(const char *pName, Dictionary *pParms, InputStream *pSource);
+	static InputStream *Create(const char *pName, const Dictionary *pParms, InputStream *pSource);
 };
 
 #endif

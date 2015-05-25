@@ -6,18 +6,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-ObjReader::ObjReader(DataInputStream *pSource, Xref *pXref)
+ObjReader::ObjReader(DataInputStream *pSource, const Xref *pXref)
 {
 	m_pSource = pSource;
 	m_pXref = pXref;
 }
 
-Object *ObjReader::ReadObj(void)
+const Object *ObjReader::ReadObj(void)
 {
 	unsigned int nOffset, nOffTmp;
 	int c, n;
-	Object *pObj, *pObj2;
+	Object *pObj;
 	Dictionary *pDict;
+	const Object *pcObj;
 	char str[32 * 1024], *ptr;
 	int nParentheses;
 
@@ -70,17 +71,17 @@ Object *ObjReader::ReadObj(void)
 						m_pSource->Read(str, 6);
 						if (strncmp(str, "stream", 6) == 0)  //stream
 						{
-							pObj = pDict->GetValue("Length");
-							if (pObj->GetType() == Object::OBJ_REFERENCE)
+							pcObj = pDict->GetValue("Length");
+							if (pcObj->GetType() == Object::OBJ_REFERENCE)
 							{
 								nOffTmp = m_pSource->Position();
-								pObj = ReadIndirectObj(((Reference *)pObj)->GetObjNum(), ((Reference *)pObj)->GetGeneration());
+								pcObj = ReadIndirectObj(((const Reference *)pcObj)->GetObjNum(), ((const Reference *)pcObj)->GetGeneration());
 								m_pSource->Seek(nOffTmp, SEEK_SET);
-								n = ((Numeric *)pObj)->GetValue();
-								delete pObj;
+								n = ((const Numeric *)pcObj)->GetValue();
+								delete pcObj;
 							}
 							else
-								n = ((Numeric *)pObj)->GetValue();
+								n = ((const Numeric *)pcObj)->GetValue();
 							pObj = new Stream(pDict);
 							m_pSource->Skip();
 							ptr = new char[n];
@@ -98,8 +99,8 @@ Object *ObjReader::ReadObj(void)
 					else
 					{
 						m_pSource->Seek(-1, SEEK_CUR);
-						pObj = ReadObj();
-						pDict->Add(pObj, ReadObj());
+						pcObj = ReadObj();
+						pDict->Add(pcObj, ReadObj());
 					}
 				}
 			}
@@ -164,7 +165,7 @@ Object *ObjReader::ReadObj(void)
 	return pObj;
 }
 
-Object *ObjReader::ReadIndirectObj(int nObjNum, int nGeneration)
+const Object *ObjReader::ReadIndirectObj(int nObjNum, int nGeneration)
 {
 	unsigned int nOffset;
 	char str[4];

@@ -13,9 +13,8 @@ PDF::PDF(InputStream *pSource)
 	char str[40];
 	int i, j, n, nOffset;
 	bool bFound;
-	Dictionary *pDict;
 	Trailer *pTrailer;
-	Object *pObj;
+	const Object *pObj;
 
 	m_pSource = new DataInputStream(pSource);
 	*str = m_pSource->Read();
@@ -70,13 +69,13 @@ PDF::PDF(InputStream *pSource)
 			m_pXref->Read(m_pSource);
 			m_pSource->ReadStr(str, sizeof(str));  //trailer
 			pTrailer->pStream = NULL;
-			pTrailer->pDict = (Dictionary *)m_pReader->ReadObj();
+			pTrailer->pDict = (const Dictionary *)m_pReader->ReadObj();
 		}
 		else
 		{
 			m_pSource->ReadInt();
 			m_pSource->ReadStr(str, sizeof(str));  //obj
-			pTrailer->pStream = (Stream *)m_pReader->ReadObj();  //stream
+			pTrailer->pStream = (const Stream *)m_pReader->ReadObj();  //stream
 			pTrailer->pDict = pTrailer->pStream->GetDictionary();
 			pSource = CreateInputStream(pTrailer->pStream);
 			m_pXref->Read(pSource);
@@ -92,7 +91,7 @@ PDF::PDF(InputStream *pSource)
 
 		pObj = pTrailer->pDict->GetValue("Prev");
 		if (pObj != NULL)
-			nOffset = ((Numeric *)pObj)->GetValue();
+			nOffset = ((const Numeric *)pObj)->GetValue();
 	} while (pObj != NULL);
 
 	m_nPageNum = 0;
@@ -101,8 +100,8 @@ PDF::PDF(InputStream *pSource)
 		pObj = GetObject(pTrailer->pDict->GetValue("Root"));
 		if (pObj != NULL)
 		{
-			m_pPages = (Dictionary *)GetObject(((Dictionary *)pObj)->GetValue("Pages"));
-			m_nPageNum = ((Numeric *)GetObject(m_pPages->GetValue("Count")))->GetValue();
+			m_pPages = (const Dictionary *)GetObject(((Dictionary *)pObj)->GetValue("Pages"));
+			m_nPageNum = ((const Numeric *)GetObject(m_pPages->GetValue("Count")))->GetValue();
 			break;
 		}
 	}
@@ -133,31 +132,31 @@ const char *PDF::GetVersion(void)
 	return m_pVersion;
 }
 
-Xref *PDF::GetXref(void)
+const Xref *PDF::GetXref(void)
 {
 	return m_pXref;
 }
 
-Trailer *PDF::GetTrailer(void)
+const Trailer *PDF::GetTrailer(void)
 {
 	return m_pTrailer;
 }
 
-Object *PDF::GetObject(int nNum)
+const Object *PDF::GetObject(int nNum)
 {
 	return m_pReader->ReadIndirectObj(nNum, 0);
 }
 
-Object *PDF::GetObject(Object *pObj)
+const Object *PDF::GetObject(const Object *pObj)
 {
-	Object *pTarget;
+	const Object *pTarget;
 
 	while (pObj != NULL && pObj->GetType() == Object::OBJ_REFERENCE)
 	{
-		pTarget = ((Reference *)pObj)->GetObject();
+		pTarget = ((const Reference *)pObj)->GetObject();
 		if (pTarget == NULL)
 		{
-			pTarget = GetObject(((Reference *)pObj)->GetObjNum());
+			pTarget = GetObject(((const Reference *)pObj)->GetObjNum());
 			((Reference *)pObj)->SetObject(pTarget);
 		}
 		pObj = pTarget;
@@ -165,11 +164,11 @@ Object *PDF::GetObject(Object *pObj)
 	return pObj;
 }
 
-InputStream *PDF::CreateInputStream(Stream *pStream)
+InputStream *PDF::CreateInputStream(const Stream *pStream)
 {
 	InputStream *pSource;
-	Dictionary *pDict;
-	Object *pFilter, *pParms;
+	const Dictionary *pDict;
+	const Object *pFilter, *pParms;
 	int i, n;
 
 	pSource = new ByteArrayInputStream(pStream->GetValue(), pStream->GetSize());
@@ -179,12 +178,12 @@ InputStream *PDF::CreateInputStream(Stream *pStream)
 	{
 		pParms = GetObject(pDict->GetValue("DecodeParms"));
 		if (pFilter->GetType() == Object::OBJ_NAME)
-			pSource = FilterFactory::Create(((Name *)pFilter)->GetValue(), (Dictionary *)pParms, pSource);
+			pSource = FilterFactory::Create(((const Name *)pFilter)->GetValue(), (const Dictionary *)pParms, pSource);
 		else if (pFilter->GetType() == Object::OBJ_ARRAY)
 		{
-			n = ((Array *)pFilter)->GetSize();
+			n = ((const Array *)pFilter)->GetSize();
 			for (i = 0; i < n; i++)
-				pSource = FilterFactory::Create(((Name *)GetObject(((Array *)pFilter)->GetValue(i)))->GetValue(), pParms == NULL? NULL : (Dictionary *)((Array *)pParms)->GetValue(i), pSource);
+				pSource = FilterFactory::Create(((const Name *)GetObject(((const Array *)pFilter)->GetValue(i)))->GetValue(), pParms == NULL? NULL : (const Dictionary *)((const Array *)pParms)->GetValue(i), pSource);
 		}
 	}
 	return pSource;
@@ -195,27 +194,27 @@ int PDF::GetPageNum(void)
 	return m_nPageNum;
 }
 
-Dictionary *PDF::GetPage(int nIndex)
+const Dictionary *PDF::GetPage(int nIndex)
 {
 	return nIndex > 0? GetPage(m_pPages, nIndex) : NULL;
 }
 
-Dictionary *PDF::GetPage(Dictionary *pParent, int nIndex)
+const Dictionary *PDF::GetPage(const Dictionary *pParent, int nIndex)
 {
-	Array *pKids;
+	const Array *pKids;
 	int i, nSize, nCount;
-	Reference *pRef;
-	Dictionary *pChild, *pRet;
+	const Reference *pRef;
+	const Dictionary *pChild, *pRet;
 
-	pKids = (Array *)pParent->GetValue("Kids");
+	pKids = (const Array *)pParent->GetValue("Kids");
 	nSize = pKids->GetSize();
 	for (i = 0; i < nSize; i++)
 	{
-		pRef = (Reference *)pKids->GetValue(i);
-		pChild = (Dictionary *)GetObject(pRef->GetObjNum());
-		if (strcmp(((Name *)pChild->GetValue("Type"))->GetValue(), "Pages") == 0)  //not leaf node
+		pRef = (const Reference *)pKids->GetValue(i);
+		pChild = (const Dictionary *)GetObject(pRef->GetObjNum());
+		if (strcmp(((const Name *)pChild->GetValue("Type"))->GetValue(), "Pages") == 0)  //not leaf node
 		{
-			nCount = ((Numeric *)pChild->GetValue("Count"))->GetValue();
+			nCount = ((const Numeric *)pChild->GetValue("Count"))->GetValue();
 			if (nIndex <= nCount)
 			{
 				pRet = GetPage(pChild, nIndex);
