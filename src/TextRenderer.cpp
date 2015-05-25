@@ -54,6 +54,7 @@ void TextRenderer::RenderString(const String *pString)
 	n = pString->GetLength();
 	wstr = new wchar_t[n + 1];
 	n = m_pFontData->CharCodesToUnicodes(pString->GetValue(), n, wstr);
+	wstr[n] = L'\0';
 
 	str = new char[n * 6 + 1];
 	wcstombs(str, wstr, n * 6 + 1);
