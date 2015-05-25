@@ -10,8 +10,9 @@
 
 PDF::PDF(InputStream *pSource)
 {
-	char str[10];
-	int nOffset, c, n;
+	char str[40];
+	int i, j, n, nOffset;
+	bool bFound;
 	Dictionary *pDict;
 	Trailer *pTrailer;
 	Object *pObj;
@@ -29,26 +30,32 @@ PDF::PDF(InputStream *pSource)
 
 	strcpy(m_pVersion, (const char *)str + 5);
 
-	m_pSource->Seek(-1024, SEEK_END);
-	while (true)
+	n = strlen("startxref");
+	bFound = false;
+	m_pSource->Seek(-(int)sizeof(str), SEEK_END);
+	for (i = 30; i > 0; --i)
 	{
-		c = m_pSource->Read();
-		if (c == EOF)
-		{
-			m_pVersion[0] = '\0';
-			delete m_pSource;
-			m_pSource = NULL;
-			return;
-		}
-		if (c == 's')
-		{
-			*str = 's';
-			m_pSource->ReadStr(str + 1, sizeof(str) - 1);
-			if (strcmp(str, "startxref") == 0)
+		m_pSource->Read(str, sizeof(str));
+		for (j = 0; j < sizeof(str) - n; ++j)
+			if (strncmp(str + j, "startxref", n) == 0)
+			{
+				bFound = true;
+				m_pSource->Seek(j - sizeof(str), SEEK_CUR);
+				m_pSource->ReadStr(str, sizeof(str));  // startxref
+				nOffset = m_pSource->ReadInt();  // offset of xref
 				break;
-		}
+			}
+		if (bFound)
+			break;
+		m_pSource->Seek(n - sizeof(str) * 2, SEEK_CUR);
 	}
-	nOffset = m_pSource->ReadInt();
+	if (!bFound)  // startxref is not found
+	{
+		m_pVersion[0] = '\0';
+		delete m_pSource;
+		m_pSource = NULL;
+		return;
+	}
 
 	m_pXref = new Xref();
 	m_pReader = new ObjReader(m_pSource, m_pXref);
