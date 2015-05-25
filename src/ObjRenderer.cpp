@@ -10,6 +10,7 @@ ObjRenderer::ObjRenderer(PDF *pPDF) : Renderer(pPDF), m_beginText(false)
 void ObjRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 {
 	int i;
+	const char *cstr;
 
 	for (i = 0; i < nParams; i++)
 	{
@@ -22,11 +23,12 @@ void ObjRenderer::RenderOperator(Operator *pOp, Object **pParams, int nParams)
 	Object::Print(pOp);
 	putchar('\n');
 
-	if (strcmp(pOp->GetValue(), "Tf") == 0)
+	cstr = pOp->GetValue();
+	if (strcmp(cstr, "Tf") == 0)
 		ChangeFont(((Name *)pParams[0])->GetValue());
-	else if (strcmp(pOp->GetValue(), "BT") == 0)
+	else if (strcmp(cstr, "BT") == 0)
 		m_beginText = true;
-	else if (strcmp(pOp->GetValue(), "ET") == 0)
+	else if (strcmp(cstr, "ET") == 0)
 		m_beginText = false;
 }
 
