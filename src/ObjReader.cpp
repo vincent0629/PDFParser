@@ -125,6 +125,9 @@ const Object *ObjReader::ReadObj(void)
 				((Array *)pObj)->Add(ReadObj());
 			}
 			break;
+		case EOF:
+			pObj = NULL;
+			break;
 		default:
 			*str = c;
 			m_pSource->ReadStr(str + 1, sizeof(str) - 1);
@@ -161,7 +164,8 @@ const Object *ObjReader::ReadObj(void)
 	}
 	m_pSource->Skip();
 
-	pObj->SetOffset(nOffset);
+	if (pObj != NULL)
+		pObj->SetOffset(nOffset);
 	return pObj;
 }
 

@@ -12,7 +12,6 @@ public:
 
 private:
 	CMap *m_pCMap;
-	int m_nCount;
 };
 
 #endif

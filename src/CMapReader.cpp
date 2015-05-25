@@ -1,117 +1,93 @@
 #include "CMapReader.h"
 #include "CMap.h"
-#include "InputStream.h"
+#include "DataInputStream.h"
+#include "Object.h"
+#include "ObjReader.h"
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 
-static bool IsSpace(int c)
+static unsigned int StringToCode(const String *pString)
 {
-	//return c == ' ' || c == '\n' || c == '\r' || c == '\t';
-	return c >= 0 && c <= ' ';
-}
+	int i, nCode, nLen;
+	const unsigned char *cstr;
+	int code;
 
-static const char *ReadToken(InputStream *pSource)
-{
-	static char str[80];
-	char *ptr;
-	int nState, c;
-
-	ptr = str;
-	nState = 1;
-	while (nState > 0)
-	{
-		c = pSource->Read();
-		if (c == EOF)
-			break;
-
-		switch (nState)
-		{
-			case 1:
-				if (c == '%')
-					nState = 3;
-				else if (!IsSpace(c))
-				{
-					*ptr++ = c;
-					nState = 2;
-				}
-				break;
-			case 2:
-				if (IsSpace(c))
-					nState = 0;
-				else if (c == '/')
-				{
-					pSource->Seek(-1, SEEK_CUR);
-					nState = 0;
-				}
-				else
-					*ptr++ = c;
-				break;
-			case 3:
-				if (c == '\n' || c == '\r')
-					nState = 4;
-				break;
-			case 4:
-				if (c != '\n' || c != '\r')
-				{
-					pSource->Seek(-1, SEEK_CUR);
-					nState = 1;
-				}
-				break;
-		}
-	}
-	*ptr = '\0';
-
-	return str;
+	nCode = 0;
+	cstr = (const unsigned char *)pString->GetValue();
+	nLen = pString->GetLength();
+	for (i = 0; i < nLen; ++i)
+		nCode = (nCode << 8) | cstr[i];
+	return nCode;
 }
 
 CMapReader::CMapReader(CMap *pCMap)
 {
 	m_pCMap = pCMap;
-	m_nCount = 0;
 }
 
 void CMapReader::Read(InputStream *pSource)
 {
-	const char *str;
+	DataInputStream *pDIS;
+	ObjReader *pReader;
+	const Object *pObj;
+	const Array *pArray;
+	const char *cstr;
 	unsigned int i, nFrom, nTo, nCode;
 
+	pDIS = new DataInputStream(pSource);
+	pReader = new ObjReader(pDIS, NULL);
 	while (true)
 	{
-		str = ReadToken(pSource);
-		if (str[0] == '\0')
+		pObj = pReader->ReadObj();
+		if (pObj == NULL)
 			break;
 
-		if (strcmp(str, "beginbfchar") == 0 || strcmp(str, "begincidchar") == 0)
+		if (pObj->GetType() == Object::OBJ_OPERATOR)
 		{
-			while (true)
+			cstr = ((const Operator *)pObj)->GetValue();
+			if (strcmp(cstr, "beginbfchar") == 0 || strcmp(cstr, "begincidchar") == 0)
 			{
-				str = ReadToken(pSource);
-				if (strncmp(str, "end", 3) == 0)
-					break;
-				nFrom = *str == '<'? strtol(str + 1, NULL, 16) : atoi(str);
-				str = ReadToken(pSource);
-				nCode = *str == '<'? strtol(str + 1, NULL, 16) : atoi(str);
-				m_pCMap->Set(nFrom, nCode);
+				while (true)
+				{
+					pObj = pReader->ReadObj();
+					if (pObj->GetType() == Object::OBJ_OPERATOR)  // end
+						break;
+					nFrom = StringToCode((const String *)pObj);
+					pObj = pReader->ReadObj();
+					nCode = StringToCode((const String *)pObj);
+					m_pCMap->Set(nFrom, nCode);
+				}
 			}
-		}
-		else if (strcmp(str, "beginbfrange") == 0 || strcmp(str, "begincidrange") == 0)
-		{
-			while (true)
+			else if (strcmp(cstr, "beginbfrange") == 0 || strcmp(cstr, "begincidrange") == 0)
 			{
-				str = ReadToken(pSource);
-				if (strncmp(str, "end", 3) == 0)
-					break;
-				nFrom = *str == '<'? strtol(str + 1, NULL, 16) : atoi(str);
-				str = ReadToken(pSource);
-				nTo = *str == '<'? strtol(str + 1, NULL, 16) : atoi(str);
-				str = ReadToken(pSource);
-				nCode = *str == '<'? strtol(str + 1, NULL, 16) : atoi(str);
-				for (i = nFrom; i <= nTo; i++)
-					m_pCMap->Set(i, nCode + i - nFrom);
+				while (true)
+				{
+					pObj = pReader->ReadObj();
+					if (pObj->GetType() == Object::OBJ_OPERATOR)  // end
+						break;
+					nFrom = StringToCode((const String *)pObj);
+					pObj = pReader->ReadObj();
+					nTo = StringToCode((const String *)pObj);
+					pObj = pReader->ReadObj();
+					if (pObj->GetType() == Object::OBJ_STRING)
+					{
+						nCode = StringToCode((const String *)pObj);
+						for (i = nFrom; i <= nTo; ++i)
+							m_pCMap->Set(i, nCode + i - nFrom);
+					}
+					else
+					{
+						pArray = (const Array *)pObj;
+						for (i = nFrom; i <= nTo; ++i)
+						{
+							pObj = pArray->GetValue(i);
+							m_pCMap->Set(i, StringToCode((const String *)pObj));
+						}
+					}
+				}
 			}
 		}
 	}
-
-	++m_nCount;
+	delete pReader;
+	delete pDIS;
 }
