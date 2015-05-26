@@ -5,6 +5,7 @@
 #include "ObjReader.h"
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 static unsigned int StringToCode(const String *pString)
 {
@@ -75,15 +76,24 @@ void CMapReader::Read(InputStream *pSource)
 						for (i = nFrom; i <= nTo; ++i)
 							m_pCMap->Set(i, nCode + i - nFrom);
 					}
-					else
+					else if (pObj->GetType() == Object::OBJ_NUMERIC)
+					{
+						nCode = ((const Numeric *)pObj)->GetValue();
+						for (i = nFrom; i <= nTo; ++i)
+							m_pCMap->Set(i, nCode + i - nFrom);
+					}
+					else if (pObj->GetType() == Object::OBJ_ARRAY)
 					{
 						pArray = (const Array *)pObj;
 						for (i = nFrom; i <= nTo; ++i)
 						{
 							pObj = pArray->GetValue(i - nFrom);
+							assert(pObj->GetType() == Object::OBJ_STRING);
 							m_pCMap->Set(i, StringToCode((const String *)pObj));
 						}
 					}
+					else
+						assert(false);
 				}
 			}
 		}
