@@ -80,7 +80,7 @@ void CMapReader::Read(InputStream *pSource)
 						pArray = (const Array *)pObj;
 						for (i = nFrom; i <= nTo; ++i)
 						{
-							pObj = pArray->GetValue(i);
+							pObj = pArray->GetValue(i - nFrom);
 							m_pCMap->Set(i, StringToCode((const String *)pObj));
 						}
 					}
