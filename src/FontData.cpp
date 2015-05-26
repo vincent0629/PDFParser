@@ -4,6 +4,7 @@
 #include "FileInputStream.h"
 #include "FontEncoding.h"
 #include "InputStream.h"
+#include "NameToUnicode.h"
 #include "Object.h"
 #include "PDF.h"
 #include <stdio.h>
@@ -32,15 +33,14 @@ FontData::FontData(PDF *pPDF, const Dictionary *pFont)
 	, m_pCodeToName(standardEncoding)
 	, m_bFontFile(false)
 	, m_pFontFile(NULL)
+	, m_nFirstChar(0)
 {
-	const Object *pObj;
 	const char *cstr;
 
 	memset(m_pDifferences, 0, sizeof(m_pDifferences));
 
-	pObj = m_pPDF->GetObject(m_pFont->GetValue("Subtype"));
-	cstr = ((const Name *)pObj)->GetValue();
-	m_bSimple = strcmp(cstr, "Type1") == 0 || strcmp(cstr, "MMType1") == 0 || strcmp(cstr, "TrueType") == 0 || strcmp(cstr, "Type3") == 0;
+	cstr = ((const Name *)m_pPDF->GetObject(m_pFont->GetValue("Subtype")))->GetValue();
+	m_bSimple = strcmp(cstr, "Type0") != 0;
 }
 
 FontData::~FontData()
@@ -59,66 +59,88 @@ int FontData::CharCodesToGlyphs(const char *charCodes, int nLen, int *glyphs)
 	char name[16], file[128];
 	InputStream *pSource;
 	const unsigned char *ptr;
+	const char *cname;
+	NameToUnicode *pNameToUnicode;
 
-	pEncoding = m_pPDF->GetObject(m_pFont->GetValue("Encoding"));
-	if (pEncoding != NULL)
-		if (m_bSimple)
-		{
-			if (pEncoding->GetType() == Object::OBJ_DICTIONARY)
+	if (!m_bEncoding)
+	{
+		m_bEncoding = true;
+		pEncoding = m_pPDF->GetObject(m_pFont->GetValue("Encoding"));
+		if (pEncoding != NULL)
+			if (m_bSimple)
 			{
-				pDifferences = (const Array *)m_pPDF->GetObject(((const Dictionary *)pEncoding)->GetValue("Differences"));
-				index = 0;
-				n = pDifferences->GetSize();
-				for (i = 0; i < n; i++)
+				if (pEncoding->GetType() == Object::OBJ_DICTIONARY)
 				{
-					pObj = pDifferences->GetValue(i);
-					if (pObj->GetType() == Object::OBJ_NUMERIC)
-						index = ((const Numeric *)pObj)->GetValue();
-					else
-						m_pDifferences[index++] = ((const Name *)pObj)->GetValue();
+					pDifferences = (const Array *)m_pPDF->GetObject(((const Dictionary *)pEncoding)->GetValue("Differences"));
+					index = 0;
+					n = pDifferences->GetSize();
+					for (i = 0; i < n; i++)
+					{
+						pObj = pDifferences->GetValue(i);
+						if (pObj->GetType() == Object::OBJ_NUMERIC)
+							index = ((const Numeric *)pObj)->GetValue();
+						else
+							m_pDifferences[index++] = ((const Name *)pObj)->GetValue();
+					}
+					pEncoding = m_pPDF->GetObject(((const Dictionary *)pEncoding)->GetValue("BaseEncoding"));
 				}
-				pEncoding = m_pPDF->GetObject(((const Dictionary *)pEncoding)->GetValue("BaseEncoding"));
+				if (pEncoding != NULL)
+				{
+					cstr = ((const Name *)pEncoding)->GetValue();
+					if (strcmp(cstr, "WinAnsiEncoding") == 0)
+						m_pCodeToName = winAnsiEncoding;
+					else if (strcmp(cstr, "StandardEncoding") == 0)
+						m_pCodeToName = standardEncoding;
+					else if (strcmp(cstr, "MacRomanEncoding") == 0)
+						m_pCodeToName = macRomanEncoding;
+					else if (strcmp(cstr, "MacExpertEncoding") == 0)
+						m_pCodeToName = macExpertEncoding;
+				}
 			}
-			if (pEncoding != NULL)
+			else
 			{
 				cstr = ((const Name *)pEncoding)->GetValue();
-				if (strcmp(cstr, "WinAnsiEncoding") == 0)
-					m_pCodeToName = winAnsiEncoding;
-				else if (strcmp(cstr, "StandardEncoding") == 0)
-					m_pCodeToName = standardEncoding;
-				else if (strcmp(cstr, "MacRomanEncoding") == 0)
-					m_pCodeToName = macRomanEncoding;
-				else if (strcmp(cstr, "MacExpertEncoding") == 0)
-					m_pCodeToName = macExpertEncoding;
+				pObj = m_pPDF->GetObject(m_pFont->GetValue("DescendantFonts"));
+				pObj = m_pPDF->GetObject(((const Array *)pObj)->GetValue(0));
+				pObj = m_pPDF->GetObject(((const Dictionary *)pObj)->GetValue("CIDSystemInfo"));
+				strcpy(name, ((const String *)m_pPDF->GetObject(((const Dictionary *)pObj)->GetValue("Registry")))->GetValue());
+				strcat(name, "-");
+				strcat(name, ((const String *)m_pPDF->GetObject(((const Dictionary *)pObj)->GetValue("Ordering")))->GetValue());
+				sprintf(file, "/usr/share/poppler/cMap/%s/%s", strncmp(cstr, "Identity", 8) == 0? "" : name, cstr);
+				pSource = new FileInputStream(file);
+				m_pCMap = ReadCMap(pSource);
+				delete pSource;
+				sprintf(file, "/usr/share/poppler/cMap/%s/%s-UCS2", name, name);
+				pSource = new FileInputStream(file);
+				m_pCMap->Concat(ReadCMap(pSource));
+				delete pSource;
 			}
-		}
-		else
-		{
-			cstr = ((const Name *)pEncoding)->GetValue();
-			pObj = m_pPDF->GetObject(m_pFont->GetValue("DescendantFonts"));
-			pObj = m_pPDF->GetObject(((const Array *)pObj)->GetValue(0));
-			pObj = m_pPDF->GetObject(((const Dictionary *)pObj)->GetValue("CIDSystemInfo"));
-			strcpy(name, ((const String *)m_pPDF->GetObject(((const Dictionary *)pObj)->GetValue("Registry")))->GetValue());
-			strcat(name, "-");
-			strcat(name, ((const String *)m_pPDF->GetObject(((const Dictionary *)pObj)->GetValue("Ordering")))->GetValue());
-			sprintf(file, "/usr/share/poppler/cMap/%s/%s", strncmp(cstr, "Identity", 8) == 0? "" : name, cstr);
-			pSource = new FileInputStream(file);
-			m_pCMap = ReadCMap(pSource);
-			delete pSource;
-			sprintf(file, "/usr/share/poppler/cMap/%s/%s-UCS2", name, name);
-			pSource = new FileInputStream(file);
-			m_pCMap->Concat(ReadCMap(pSource));
-			delete pSource;
-		}
+	}
 
 	ptr = (const unsigned char *)charCodes;
-	if (m_pCMap != NULL)
+	if (m_bSimple)
 	{
 		for (i = 0; i < nLen; ++i)
-			glyphs[i] = m_pCMap->Get(ptr[i]);
+		{
+			cname = m_pDifferences[ptr[i]];
+			if (cname == NULL)
+				cname = m_pCodeToName[ptr[i]];
+			if (cname != NULL)
+			{
+				for (pNameToUnicode = nameToUnicode; pNameToUnicode->name != NULL; ++pNameToUnicode)
+					if (strcmp(cname, pNameToUnicode->name) == 0)
+					{
+						glyphs[i] = pNameToUnicode->unicode;
+						break;
+					}
+			}
+		}
 	}
 	else
 	{
+		nLen /= 2;
+		for (i = 0; i < nLen; ++i)
+			glyphs[i] = m_pCMap->Get((ptr[i * 2] << 8) | ptr[i * 2 + 1]);
 	}
 
 	return nLen;
@@ -130,6 +152,7 @@ int FontData::CharCodesToUnicodes(const char *charCodes, int nLen, wchar_t *unic
 	const Object *pObj;
 	InputStream *pSource;
 	const unsigned char *ptr;
+	int *glyphs;
 
 	if (!m_bToUnicode)
 	{
@@ -141,6 +164,9 @@ int FontData::CharCodesToUnicodes(const char *charCodes, int nLen, wchar_t *unic
 			m_pToUnicode = ReadCMap(pSource);
 			delete pSource;
 		}
+		pObj = m_pPDF->GetObject(m_pFont->GetValue("FirstChar"));
+		if (pObj != NULL)
+			m_nFirstChar = ((const Numeric *)pObj)->GetValue();
 	}
 
 	ptr = (const unsigned char *)charCodes;
@@ -150,8 +176,13 @@ int FontData::CharCodesToUnicodes(const char *charCodes, int nLen, wchar_t *unic
 			for (i = 0; i < nLen; ++i)
 				unicodes[i] = m_pToUnicode->Get(ptr[i]);
 		else
+		{
+			glyphs = new int[nLen];
+			CharCodesToGlyphs(charCodes, nLen, glyphs);
 			for (i = 0; i < nLen; ++i)
-				unicodes[i] = ptr[i];
+				unicodes[i] = glyphs[i];
+			delete[] glyphs;
+		}
 	}
 	else
 	{
@@ -160,8 +191,13 @@ int FontData::CharCodesToUnicodes(const char *charCodes, int nLen, wchar_t *unic
 			for (i = 0; i < nLen; ++i)
 				unicodes[i] = m_pToUnicode->Get((ptr[i * 2] << 8) | ptr[i * 2 + 1]);
 		else
+		{
+			glyphs = new int[nLen];
+			CharCodesToGlyphs(charCodes, nLen, glyphs);
 			for (i = 0; i < nLen; ++i)
-				unicodes[i] = (ptr[i * 2] << 8) | ptr[i * 2 + 1];
+				unicodes[i] = glyphs[i];
+			delete[] glyphs;
+		}
 	}
 
 	return nLen;

@@ -1,7 +1,7 @@
 #ifndef _FONTDATA_H_
 #define _FONTDATA_H_
 
-#include <stdint.h>
+#include <wchar.h>
 
 class CMap;
 class Dictionary;
@@ -29,6 +29,7 @@ private:
 	const char *m_pDifferences[256];
 	bool m_bFontFile;
 	InputStream *m_pFontFile;
+	int m_nFirstChar, m_nLastChar;
 };
 
 #endif
