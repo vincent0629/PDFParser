@@ -34,7 +34,7 @@ static void Run(const char *pFile, RendererFactory::RendererType nType)
 		while (true)
 		{
 			printf("\nPDF> ");
-			gets(str);
+			fgets(str, sizeof(str), stdin);
 			token[0] = strtok(str, " ");
 			for (n = 1; n < 5; n++)
 			{
